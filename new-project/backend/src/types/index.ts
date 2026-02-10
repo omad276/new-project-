@@ -214,3 +214,107 @@ export type PublicMap = Omit<IMap, 'project' | 'uploadedBy' | 'storagePath'> & {
   uploadedBy: string | PublicUser;
   downloadUrl: string;
 };
+
+// ============================================
+// Measurement Types
+// ============================================
+
+export type MeasurementType = 'area' | 'distance' | 'volume' | 'perimeter' | 'angle';
+export type MeasurementUnit =
+  | 'm'
+  | 'cm'
+  | 'mm'
+  | 'ft'
+  | 'in'
+  | 'sqm'
+  | 'sqft'
+  | 'cbm'
+  | 'cbft'
+  | 'deg';
+
+export interface Point2D {
+  x: number;
+  y: number;
+}
+
+export interface Point3D extends Point2D {
+  z: number;
+}
+
+export interface IMeasurement {
+  map: Types.ObjectId;
+  project: Types.ObjectId;
+  name: string;
+  type: MeasurementType;
+  points: Point2D[] | Point3D[];
+  value: number;
+  unit: MeasurementUnit;
+  displayValue: string;
+  color?: string;
+  notes?: string;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IMeasurementDocument extends IMeasurement, Document {
+  _id: Types.ObjectId;
+  toPublicJSON(): PublicMeasurement;
+}
+
+export type PublicMeasurement = Omit<IMeasurement, 'map' | 'project' | 'createdBy'> & {
+  id: string;
+  map: string;
+  project: string;
+  createdBy: string | PublicUser;
+};
+
+// ============================================
+// Cost Calculation Types
+// ============================================
+
+export type CostCategory = 'material' | 'labor' | 'equipment' | 'overhead' | 'other';
+
+export interface CostItem {
+  name: string;
+  category: CostCategory;
+  unitCost: number;
+  unit: string;
+  quantity: number;
+  totalCost: number;
+}
+
+export interface ICostEstimate {
+  project: Types.ObjectId;
+  map?: Types.ObjectId;
+  name: string;
+  description?: string;
+  measurements: Types.ObjectId[];
+  items: CostItem[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+  currency: string;
+  notes?: string;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ICostEstimateDocument extends ICostEstimate, Document {
+  _id: Types.ObjectId;
+  recalculate(): void;
+  toPublicJSON(): PublicCostEstimate;
+}
+
+export type PublicCostEstimate = Omit<
+  ICostEstimate,
+  'project' | 'map' | 'measurements' | 'createdBy'
+> & {
+  id: string;
+  project: string;
+  map?: string;
+  measurements: string[];
+  createdBy: string | PublicUser;
+};

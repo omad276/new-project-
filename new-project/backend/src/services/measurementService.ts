@@ -1,0 +1,616 @@
+import { Measurement } from '../models/Measurement.js';
+import { CostEstimate } from '../models/CostEstimate.js';
+import { Map } from '../models/Map.js';
+import { Project } from '../models/Project.js';
+import { AppError } from '../utils/AppError.js';
+import {
+  PublicMeasurement,
+  PublicCostEstimate,
+  IMeasurementDocument,
+  ICostEstimateDocument,
+  MeasurementType,
+  MeasurementUnit,
+  Point2D,
+  Point3D,
+  CostItem,
+  CostCategory,
+} from '../types/index.js';
+
+// ============================================
+// Calculation Utilities
+// ============================================
+
+/**
+ * Calculate distance between two points
+ */
+function calculateDistance(p1: Point2D, p2: Point2D): number {
+  return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+}
+
+/**
+ * Calculate polygon area using Shoelace formula
+ */
+function calculatePolygonArea(points: Point2D[]): number {
+  if (points.length < 3) return 0;
+
+  let area = 0;
+  const n = points.length;
+
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+
+  return Math.abs(area) / 2;
+}
+
+/**
+ * Calculate perimeter of a polygon
+ */
+function calculatePerimeter(points: Point2D[]): number {
+  if (points.length < 2) return 0;
+
+  let perimeter = 0;
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    perimeter += calculateDistance(points[i], points[j]);
+  }
+
+  return perimeter;
+}
+
+/**
+ * Calculate angle between three points (in degrees)
+ */
+function calculateAngle(p1: Point2D, vertex: Point2D, p2: Point2D): number {
+  const v1 = { x: p1.x - vertex.x, y: p1.y - vertex.y };
+  const v2 = { x: p2.x - vertex.x, y: p2.y - vertex.y };
+
+  const dot = v1.x * v2.x + v1.y * v2.y;
+  const cross = v1.x * v2.y - v1.y * v2.x;
+
+  const angle = Math.atan2(Math.abs(cross), dot);
+  return (angle * 180) / Math.PI;
+}
+
+/**
+ * Calculate volume (simplified for rectangular prisms)
+ */
+function calculateVolume(points: Point3D[], height?: number): number {
+  const baseArea = calculatePolygonArea(points);
+  const h = height || points[0]?.z || 0;
+  return baseArea * h;
+}
+
+/**
+ * Get appropriate unit for measurement type
+ */
+function getDefaultUnit(type: MeasurementType): MeasurementUnit {
+  switch (type) {
+    case 'area':
+      return 'sqm';
+    case 'volume':
+      return 'cbm';
+    case 'angle':
+      return 'deg';
+    default:
+      return 'm';
+  }
+}
+
+/**
+ * Format value with unit for display
+ */
+function formatDisplayValue(value: number, unit: MeasurementUnit): string {
+  const precision = unit === 'deg' ? 1 : 2;
+  const formattedValue = value.toFixed(precision);
+
+  const unitLabels: Record<MeasurementUnit, string> = {
+    m: 'm',
+    cm: 'cm',
+    mm: 'mm',
+    ft: 'ft',
+    in: 'in',
+    sqm: 'm²',
+    sqft: 'ft²',
+    cbm: 'm³',
+    cbft: 'ft³',
+    deg: '°',
+  };
+
+  return `${formattedValue} ${unitLabels[unit]}`;
+}
+
+// ============================================
+// Measurement Service
+// ============================================
+
+interface CreateMeasurementInput {
+  mapId: string;
+  userId: string;
+  name: string;
+  type: MeasurementType;
+  points: Point2D[] | Point3D[];
+  unit?: MeasurementUnit;
+  color?: string;
+  notes?: string;
+}
+
+interface UpdateMeasurementInput {
+  name?: string;
+  color?: string;
+  notes?: string;
+}
+
+/**
+ * Create a new measurement
+ */
+export async function createMeasurement(input: CreateMeasurementInput): Promise<PublicMeasurement> {
+  const { mapId, userId, name, type, points, unit, color, notes } = input;
+
+  // Verify map exists
+  const map = await Map.findById(mapId);
+  if (!map) {
+    throw AppError.notFound('Map not found');
+  }
+
+  // Verify project ownership
+  const project = await Project.findById(map.project);
+  if (!project || project.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only add measurements to your own projects');
+  }
+
+  // Calculate value based on type
+  let value: number;
+  switch (type) {
+    case 'distance':
+      value =
+        points.length === 2
+          ? calculateDistance(points[0], points[1])
+          : calculatePerimeter(points as Point2D[]);
+      break;
+    case 'area':
+      value = calculatePolygonArea(points as Point2D[]);
+      break;
+    case 'perimeter':
+      value = calculatePerimeter(points as Point2D[]);
+      break;
+    case 'volume':
+      value = calculateVolume(points as Point3D[]);
+      break;
+    case 'angle':
+      if (points.length !== 3) {
+        throw AppError.badRequest('Angle measurement requires exactly 3 points');
+      }
+      value = calculateAngle(points[0], points[1], points[2]);
+      break;
+    default:
+      throw AppError.badRequest(`Unknown measurement type: ${type}`);
+  }
+
+  const measurementUnit = unit || getDefaultUnit(type);
+  const displayValue = formatDisplayValue(value, measurementUnit);
+
+  const measurement = await Measurement.create({
+    map: mapId,
+    project: map.project,
+    name,
+    type,
+    points,
+    value,
+    unit: measurementUnit,
+    displayValue,
+    color,
+    notes,
+    createdBy: userId,
+  });
+
+  await measurement.populate('createdBy', 'id fullName email');
+
+  return measurement.toPublicJSON();
+}
+
+/**
+ * Get all measurements for a map
+ */
+export async function getMapMeasurements(
+  mapId: string,
+  userId?: string
+): Promise<PublicMeasurement[]> {
+  const map = await Map.findById(mapId);
+  if (!map) {
+    throw AppError.notFound('Map not found');
+  }
+
+  // Check access
+  const project = await Project.findById(map.project);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this map');
+  }
+
+  const measurements = await Measurement.findByMap(mapId);
+  return measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+}
+
+/**
+ * Get all measurements for a project
+ */
+export async function getProjectMeasurements(
+  projectId: string,
+  userId?: string
+): Promise<PublicMeasurement[]> {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this project');
+  }
+
+  const measurements = await Measurement.findByProject(projectId);
+  return measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+}
+
+/**
+ * Get measurement by ID
+ */
+export async function getMeasurementById(
+  measurementId: string,
+  userId?: string
+): Promise<PublicMeasurement> {
+  const measurement = await Measurement.findById(measurementId).populate(
+    'createdBy',
+    'id fullName email'
+  );
+
+  if (!measurement) {
+    throw AppError.notFound('Measurement not found');
+  }
+
+  // Check access
+  const project = await Project.findById(measurement.project);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this measurement');
+  }
+
+  return measurement.toPublicJSON();
+}
+
+/**
+ * Update measurement
+ */
+export async function updateMeasurement(
+  measurementId: string,
+  userId: string,
+  data: UpdateMeasurementInput
+): Promise<PublicMeasurement> {
+  const measurement = await Measurement.findById(measurementId);
+
+  if (!measurement) {
+    throw AppError.notFound('Measurement not found');
+  }
+
+  // Check ownership
+  const project = await Project.findById(measurement.project);
+  if (!project || project.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only update measurements in your own projects');
+  }
+
+  if (data.name) measurement.name = data.name;
+  if (data.color) measurement.color = data.color;
+  if (data.notes !== undefined) measurement.notes = data.notes;
+
+  await measurement.save();
+  await measurement.populate('createdBy', 'id fullName email');
+
+  return measurement.toPublicJSON();
+}
+
+/**
+ * Delete measurement
+ */
+export async function deleteMeasurement(
+  measurementId: string,
+  userId: string,
+  isAdmin: boolean = false
+): Promise<void> {
+  const measurement = await Measurement.findById(measurementId);
+
+  if (!measurement) {
+    throw AppError.notFound('Measurement not found');
+  }
+
+  const project = await Project.findById(measurement.project);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  if (project.owner.toString() !== userId && !isAdmin) {
+    throw AppError.forbidden('You can only delete measurements from your own projects');
+  }
+
+  await measurement.deleteOne();
+}
+
+/**
+ * Get measurement totals by type for a project
+ */
+export async function getMeasurementTotals(projectId: string): Promise<{
+  totals: Record<MeasurementType, number>;
+  count: Record<MeasurementType, number>;
+}> {
+  const measurements = await Measurement.find({ project: projectId });
+
+  const result = {
+    totals: {
+      area: 0,
+      distance: 0,
+      volume: 0,
+      perimeter: 0,
+      angle: 0,
+    } as Record<MeasurementType, number>,
+    count: {
+      area: 0,
+      distance: 0,
+      volume: 0,
+      perimeter: 0,
+      angle: 0,
+    } as Record<MeasurementType, number>,
+  };
+
+  for (const m of measurements) {
+    result.totals[m.type] += m.value;
+    result.count[m.type]++;
+  }
+
+  return result;
+}
+
+// ============================================
+// Cost Estimate Service
+// ============================================
+
+interface CreateCostEstimateInput {
+  projectId: string;
+  userId: string;
+  name: string;
+  description?: string;
+  mapId?: string;
+  measurementIds?: string[];
+  items: CostItem[];
+  taxRate?: number;
+  currency?: string;
+  notes?: string;
+}
+
+interface UpdateCostEstimateInput {
+  name?: string;
+  description?: string;
+  items?: CostItem[];
+  taxRate?: number;
+  notes?: string;
+}
+
+/**
+ * Create a cost estimate
+ */
+export async function createCostEstimate(
+  input: CreateCostEstimateInput
+): Promise<PublicCostEstimate> {
+  const {
+    projectId,
+    userId,
+    name,
+    description,
+    mapId,
+    measurementIds,
+    items,
+    taxRate,
+    currency,
+    notes,
+  } = input;
+
+  // Verify project ownership
+  const project = await Project.findById(projectId);
+  if (!project || project.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only create estimates for your own projects');
+  }
+
+  // Verify map if provided
+  if (mapId) {
+    const map = await Map.findById(mapId);
+    if (!map || map.project.toString() !== projectId) {
+      throw AppError.badRequest('Invalid map for this project');
+    }
+  }
+
+  const estimate = await CostEstimate.create({
+    project: projectId,
+    map: mapId,
+    name,
+    description,
+    measurements: measurementIds || [],
+    items: items.map((item) => ({
+      ...item,
+      totalCost: item.unitCost * item.quantity,
+    })),
+    taxRate: taxRate || 0,
+    currency: currency || 'USD',
+    notes,
+    createdBy: userId,
+  });
+
+  await estimate.populate('createdBy', 'id fullName email');
+
+  return estimate.toPublicJSON();
+}
+
+/**
+ * Get all cost estimates for a project
+ */
+export async function getProjectEstimates(
+  projectId: string,
+  userId?: string
+): Promise<PublicCostEstimate[]> {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this project');
+  }
+
+  const estimates = await CostEstimate.findByProject(projectId);
+  return estimates.map((e: ICostEstimateDocument) => e.toPublicJSON());
+}
+
+/**
+ * Get cost estimate by ID
+ */
+export async function getCostEstimateById(
+  estimateId: string,
+  userId?: string
+): Promise<PublicCostEstimate> {
+  const estimate = await CostEstimate.findById(estimateId)
+    .populate('createdBy', 'id fullName email')
+    .populate('map', 'id name')
+    .populate('measurements');
+
+  if (!estimate) {
+    throw AppError.notFound('Cost estimate not found');
+  }
+
+  const project = await Project.findById(estimate.project);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this estimate');
+  }
+
+  return estimate.toPublicJSON();
+}
+
+/**
+ * Update cost estimate
+ */
+export async function updateCostEstimate(
+  estimateId: string,
+  userId: string,
+  data: UpdateCostEstimateInput
+): Promise<PublicCostEstimate> {
+  const estimate = await CostEstimate.findById(estimateId);
+
+  if (!estimate) {
+    throw AppError.notFound('Cost estimate not found');
+  }
+
+  const project = await Project.findById(estimate.project);
+  if (!project || project.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only update estimates in your own projects');
+  }
+
+  if (data.name) estimate.name = data.name;
+  if (data.description !== undefined) estimate.description = data.description;
+  if (data.items) estimate.items = data.items;
+  if (data.taxRate !== undefined) estimate.taxRate = data.taxRate;
+  if (data.notes !== undefined) estimate.notes = data.notes;
+
+  await estimate.save(); // recalculate is called in pre-save
+  await estimate.populate('createdBy', 'id fullName email');
+
+  return estimate.toPublicJSON();
+}
+
+/**
+ * Delete cost estimate
+ */
+export async function deleteCostEstimate(
+  estimateId: string,
+  userId: string,
+  isAdmin: boolean = false
+): Promise<void> {
+  const estimate = await CostEstimate.findById(estimateId);
+
+  if (!estimate) {
+    throw AppError.notFound('Cost estimate not found');
+  }
+
+  const project = await Project.findById(estimate.project);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  if (project.owner.toString() !== userId && !isAdmin) {
+    throw AppError.forbidden('You can only delete estimates from your own projects');
+  }
+
+  await estimate.deleteOne();
+}
+
+/**
+ * Get project cost summary
+ */
+export async function getProjectCostSummary(projectId: string): Promise<{
+  totalEstimates: number;
+  grandTotal: number;
+  byCategory: Record<CostCategory, number>;
+  currency: string;
+}> {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const totals = await CostEstimate.getProjectTotals(projectId);
+
+  return {
+    ...totals,
+    currency: 'USD', // Default currency
+  };
+}
+
+/**
+ * Calculate cost from measurements
+ */
+export async function calculateCostFromMeasurements(
+  measurementIds: string[],
+  unitCosts: { type: MeasurementType; costPerUnit: number; unit: string }[]
+): Promise<CostItem[]> {
+  const measurements = await Measurement.find({ _id: { $in: measurementIds } });
+
+  const items: CostItem[] = [];
+
+  for (const measurement of measurements) {
+    const costConfig = unitCosts.find((c) => c.type === measurement.type);
+    if (costConfig) {
+      items.push({
+        name: `${measurement.name} (${measurement.type})`,
+        category: 'material',
+        unitCost: costConfig.costPerUnit,
+        unit: costConfig.unit,
+        quantity: measurement.value,
+        totalCost: costConfig.costPerUnit * measurement.value,
+      });
+    }
+  }
+
+  return items;
+}

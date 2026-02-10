@@ -171,3 +171,171 @@ Authorization: Bearer {{accessToken}}
 ### ================= Delete Map =================
 DELETE http://localhost:3001/api/maps/{{mapId}}
 Authorization: Bearer {{accessToken}}
+
+###############################################
+###     MEASUREMENT ENDPOINTS               ###
+###############################################
+
+### ================= Create Area Measurement =================
+POST http://localhost:3001/api/maps/{{mapId}}/measurements
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Living Room Area",
+  "type": "area",
+  "points": [
+    {"x": 0, "y": 0},
+    {"x": 5, "y": 0},
+    {"x": 5, "y": 4},
+    {"x": 0, "y": 4}
+  ],
+  "color": "#4CAF50",
+  "notes": "Main living area including seating"
+}
+
+### ================= Create Distance Measurement =================
+POST http://localhost:3001/api/maps/{{mapId}}/measurements
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Wall Length",
+  "type": "distance",
+  "points": [
+    {"x": 0, "y": 0},
+    {"x": 5, "y": 0}
+  ],
+  "color": "#2196F3"
+}
+
+### ================= Create Perimeter Measurement =================
+POST http://localhost:3001/api/maps/{{mapId}}/measurements
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Room Perimeter",
+  "type": "perimeter",
+  "points": [
+    {"x": 0, "y": 0},
+    {"x": 5, "y": 0},
+    {"x": 5, "y": 4},
+    {"x": 0, "y": 4}
+  ]
+}
+
+### ================= Get Map Measurements =================
+GET http://localhost:3001/api/maps/{{mapId}}/measurements
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Project Measurements =================
+GET http://localhost:3001/api/projects/{{projectId}}/measurements
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Measurement Totals =================
+GET http://localhost:3001/api/projects/{{projectId}}/measurements/totals
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Single Measurement =================
+GET http://localhost:3001/api/measurements/{{measurementId}}
+Authorization: Bearer {{accessToken}}
+
+### ================= Update Measurement =================
+PATCH http://localhost:3001/api/measurements/{{measurementId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Living Room Area (Updated)",
+  "color": "#FF5722",
+  "notes": "Updated measurement with furniture layout"
+}
+
+### ================= Delete Measurement =================
+DELETE http://localhost:3001/api/measurements/{{measurementId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################
+###     COST ESTIMATE ENDPOINTS             ###
+###############################################
+
+### ================= Create Cost Estimate =================
+POST http://localhost:3001/api/projects/{{projectId}}/estimates
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Foundation Cost Estimate",
+  "description": "Cost estimate for foundation work",
+  "items": [
+    {
+      "name": "Concrete",
+      "category": "material",
+      "unitCost": 120,
+      "unit": "cubic meter",
+      "quantity": 25,
+      "totalCost": 3000
+    },
+    {
+      "name": "Rebar Steel",
+      "category": "material",
+      "unitCost": 800,
+      "unit": "ton",
+      "quantity": 2,
+      "totalCost": 1600
+    },
+    {
+      "name": "Labor - Foundation",
+      "category": "labor",
+      "unitCost": 50,
+      "unit": "hour",
+      "quantity": 80,
+      "totalCost": 4000
+    }
+  ],
+  "taxRate": 10,
+  "currency": "USD",
+  "notes": "Estimate based on architectural drawings v1.2"
+}
+
+### ================= Get Project Estimates =================
+GET http://localhost:3001/api/projects/{{projectId}}/estimates
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Cost Summary =================
+GET http://localhost:3001/api/projects/{{projectId}}/estimates/summary
+Authorization: Bearer {{accessToken}}
+
+### ================= Calculate Costs from Measurements =================
+POST http://localhost:3001/api/projects/{{projectId}}/calculate
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "measurementIds": ["{{measurementId}}"],
+  "unitCosts": [
+    {"type": "area", "costPerUnit": 50, "unit": "per sqm"},
+    {"type": "distance", "costPerUnit": 25, "unit": "per meter"},
+    {"type": "volume", "costPerUnit": 120, "unit": "per cbm"}
+  ]
+}
+
+### ================= Get Single Estimate =================
+GET http://localhost:3001/api/estimates/{{estimateId}}
+Authorization: Bearer {{accessToken}}
+
+### ================= Update Estimate =================
+PATCH http://localhost:3001/api/estimates/{{estimateId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Foundation Cost Estimate (Revised)",
+  "taxRate": 12,
+  "notes": "Updated with revised material costs"
+}
+
+### ================= Delete Estimate =================
+DELETE http://localhost:3001/api/estimates/{{estimateId}}
+Authorization: Bearer {{accessToken}}

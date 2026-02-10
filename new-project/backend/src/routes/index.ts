@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import authRoutes from './authRoutes.js';
 import projectRoutes from './projectRoutes.js';
 import mapRoutes from './mapRoutes.js';
+import measurementRoutes from './measurementRoutes.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get('/health', (_req: Request, res: Response) => {
 
 router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
-router.use(mapRoutes); // Map routes are mounted at root (handles /projects/:id/maps and /maps/:id)
+router.use(mapRoutes); // Map routes (handles /projects/:id/maps and /maps/:id)
+router.use(measurementRoutes); // Measurement & cost routes
 
 export default router;
