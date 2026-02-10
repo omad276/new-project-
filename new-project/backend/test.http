@@ -55,3 +55,61 @@ Authorization: Bearer {{accessToken}}
 ### ================= Delete Account =================
 DELETE http://localhost:3001/api/auth/me
 Authorization: Bearer {{accessToken}}
+
+###############################################
+###          PROJECT ENDPOINTS              ###
+###############################################
+
+### ================= Create Project =================
+POST http://localhost:3001/api/projects
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "AI-Powered Property Finder",
+  "industry": "Real Estate Tech",
+  "stage": "mvp",
+  "description": "A platform that uses AI to match buyers with properties based on lifestyle preferences, not just location and price. We analyze commute patterns, neighborhood vibes, and future development plans.",
+  "whatIsBuilt": "Core matching algorithm, user onboarding flow, property database integration with 50k listings",
+  "whatIsMissing": "Mobile app, AI recommendation engine refinement, partnership with real estate agencies",
+  "partnershipType": "technical",
+  "riskLevel": "medium"
+}
+
+### ================= Get Public Projects =================
+GET http://localhost:3001/api/projects
+Accept: application/json
+
+### ================= Get Public Projects (with filters) =================
+GET http://localhost:3001/api/projects?industry=tech&stage=mvp&minScore=60&page=1&limit=10
+Accept: application/json
+
+### ================= Get My Projects =================
+GET http://localhost:3001/api/projects/my
+Authorization: Bearer {{accessToken}}
+
+### ================= Get My Project Stats =================
+GET http://localhost:3001/api/projects/my/stats
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Project by ID =================
+GET http://localhost:3001/api/projects/{{projectId}}
+Accept: application/json
+
+### ================= Update Project =================
+PATCH http://localhost:3001/api/projects/{{projectId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "stage": "beta",
+  "whatIsBuilt": "Core matching algorithm, user onboarding, property database, mobile app beta"
+}
+
+### ================= Recalculate Score (Admin Only) =================
+POST http://localhost:3001/api/projects/{{projectId}}/recalculate
+Authorization: Bearer {{accessToken}}
+
+### ================= Delete Project =================
+DELETE http://localhost:3001/api/projects/{{projectId}}
+Authorization: Bearer {{accessToken}}
