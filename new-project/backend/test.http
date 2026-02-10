@@ -113,3 +113,61 @@ Authorization: Bearer {{accessToken}}
 ### ================= Delete Project =================
 DELETE http://localhost:3001/api/projects/{{projectId}}
 Authorization: Bearer {{accessToken}}
+
+###############################################
+###     ARCHITECTURAL MAP ENDPOINTS         ###
+###############################################
+
+### ================= Upload Map =================
+# Use form-data with:
+# - file: (select file)
+# - name: "Floor Plan - Level 1"
+# - description: "Ground floor architectural drawing"
+POST http://localhost:3001/api/projects/{{projectId}}/maps
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="name"
+
+Floor Plan - Level 1
+--boundary
+Content-Disposition: form-data; name="description"
+
+Ground floor architectural drawing
+--boundary
+Content-Disposition: form-data; name="file"; filename="floorplan.pdf"
+Content-Type: application/pdf
+
+< ./sample-files/floorplan.pdf
+--boundary--
+
+### ================= Get Project Maps =================
+GET http://localhost:3001/api/projects/{{projectId}}/maps
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Map Statistics =================
+GET http://localhost:3001/api/projects/{{projectId}}/maps/stats
+Authorization: Bearer {{accessToken}}
+
+### ================= Get Single Map =================
+GET http://localhost:3001/api/maps/{{mapId}}
+Authorization: Bearer {{accessToken}}
+
+### ================= Download Map File =================
+GET http://localhost:3001/api/maps/{{mapId}}/download
+Authorization: Bearer {{accessToken}}
+
+### ================= Update Map Metadata =================
+PATCH http://localhost:3001/api/maps/{{mapId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Floor Plan - Level 1 (Revised)",
+  "description": "Updated ground floor with new kitchen layout"
+}
+
+### ================= Delete Map =================
+DELETE http://localhost:3001/api/maps/{{mapId}}
+Authorization: Bearer {{accessToken}}

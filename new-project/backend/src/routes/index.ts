@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import authRoutes from './authRoutes.js';
 import projectRoutes from './projectRoutes.js';
+import mapRoutes from './mapRoutes.js';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.get('/health', (_req: Request, res: Response) => {
 
 router.use('/auth', authRoutes);
 router.use('/projects', projectRoutes);
+router.use(mapRoutes); // Map routes are mounted at root (handles /projects/:id/maps and /maps/:id)
 
 export default router;

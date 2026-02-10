@@ -172,3 +172,45 @@ export interface UpdateProjectDTO {
   partnershipType?: PartnershipType;
   riskLevel?: RiskLevel;
 }
+
+// ============================================
+// Map Types (Architectural Drawings)
+// ============================================
+
+export type MapFileType = 'cad' | 'pdf' | 'image';
+export type MapStatus = 'uploading' | 'processing' | 'ready' | 'error';
+
+export interface IMap {
+  project: Types.ObjectId;
+  name: string;
+  description?: string;
+  fileType: MapFileType;
+  originalFileName: string;
+  storagePath: string;
+  fileSize: number;
+  mimeType: string;
+  status: MapStatus;
+  processingError?: string;
+  metadata: {
+    width?: number;
+    height?: number;
+    pages?: number;
+    layers?: string[];
+  };
+  version: number;
+  uploadedBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IMapDocument extends IMap, Document {
+  _id: Types.ObjectId;
+  toPublicJSON(): PublicMap;
+}
+
+export type PublicMap = Omit<IMap, 'project' | 'uploadedBy' | 'storagePath'> & {
+  id: string;
+  project: string;
+  uploadedBy: string | PublicUser;
+  downloadUrl: string;
+};
