@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Grid3X3, List, SlidersHorizontal } from 'lucide-react';
+import { Grid3X3, List, SlidersHorizontal, Map } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { FilterPanel } from '@/components/ui/FilterPanel';
@@ -11,9 +11,10 @@ import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { cn } from '@/lib/utils';
 import { useProperties } from '@/hooks/useProperties';
+import { PropertiesMap } from '@/components/map';
 import type { PropertyFilters, PropertyType, PropertyStatus, PropertyQueryParams } from '@/types';
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = 'grid' | 'list' | 'map';
 
 function PropertiesPage() {
   const { t, i18n } = useTranslation();
@@ -23,6 +24,7 @@ function PropertiesPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | undefined>();
 
   // Parse initial params from URL
   const getInitialParams = (): PropertyQueryParams => {
@@ -220,6 +222,18 @@ function PropertiesPage() {
                   >
                     <List className="w-5 h-5" />
                   </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={cn(
+                      'p-2 transition-colors',
+                      viewMode === 'map'
+                        ? 'bg-primary text-background'
+                        : 'hover:bg-background-secondary'
+                    )}
+                    aria-label="Map view"
+                  >
+                    <Map className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -242,8 +256,17 @@ function PropertiesPage() {
               </div>
             )}
 
-            {/* Properties Grid/List */}
-            {isLoading ? (
+            {/* Properties Grid/List/Map */}
+            {viewMode === 'map' ? (
+              <div className="h-[600px] lg:h-[700px]">
+                <PropertiesMap
+                  properties={properties}
+                  selectedPropertyId={selectedPropertyId}
+                  onPropertySelect={setSelectedPropertyId}
+                  className="h-full"
+                />
+              </div>
+            ) : isLoading ? (
               <div
                 className={cn(
                   'grid gap-6',
