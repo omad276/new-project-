@@ -2,10 +2,48 @@ import { Request } from 'express';
 import { Document, Types } from 'mongoose';
 
 // ============================================
-// User Types
+// User Types & RBAC
 // ============================================
 
-export type UserRole = 'user' | 'developer' | 'investor' | 'admin';
+export type UserRole = 'buyer' | 'owner' | 'agent' | 'admin';
+
+export type Permission =
+  | 'property:create'
+  | 'property:read'
+  | 'property:update:own'
+  | 'property:update:any'
+  | 'property:delete:own'
+  | 'property:delete:any'
+  | 'user:manage'
+  | 'analytics:view'
+  | 'admin:access';
+
+export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  buyer: ['property:read'],
+  owner: [
+    'property:create',
+    'property:read',
+    'property:update:own',
+    'property:delete:own',
+    'analytics:view',
+  ],
+  agent: [
+    'property:create',
+    'property:read',
+    'property:update:own',
+    'property:delete:own',
+    'analytics:view',
+  ],
+  admin: [
+    'property:create',
+    'property:read',
+    'property:update:any',
+    'property:delete:any',
+    'user:manage',
+    'analytics:view',
+    'admin:access',
+  ],
+};
 
 export interface IUser {
   email: string;
@@ -318,3 +356,150 @@ export type PublicCostEstimate = Omit<
   measurements: string[];
   createdBy: string | PublicUser;
 };
+
+// ============================================
+// Property Types
+// ============================================
+
+export type PropertyType =
+  | 'apartment'
+  | 'villa'
+  | 'office'
+  | 'land'
+  | 'building'
+  | 'warehouse'
+  | 'factory'
+  | 'industrial_land';
+
+export type PropertyStatus =
+  | 'for_sale'
+  | 'for_rent'
+  | 'off_plan'
+  | 'investment'
+  | 'sold'
+  | 'rented';
+
+export type PropertyCategory = 'residential' | 'commercial' | 'industrial';
+
+// Map property types to categories
+export const PROPERTY_CATEGORY_MAP: Record<PropertyType, PropertyCategory> = {
+  apartment: 'residential',
+  villa: 'residential',
+  office: 'commercial',
+  land: 'commercial',
+  building: 'commercial',
+  warehouse: 'industrial',
+  factory: 'industrial',
+  industrial_land: 'industrial',
+};
+
+export interface PropertyLocation {
+  address: string;
+  addressAr: string;
+  city: string;
+  cityAr: string;
+  country: string;
+  countryAr: string;
+  coordinates: {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+}
+
+export interface IProperty {
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  type: PropertyType;
+  category: PropertyCategory;
+  status: PropertyStatus;
+  price: number;
+  currency: string;
+  area: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  location: PropertyLocation;
+  images: string[];
+  features: string[];
+  featuresAr: string[];
+  owner: Types.ObjectId;
+  agent?: Types.ObjectId;
+  isActive: boolean;
+  isFeatured: boolean;
+  viewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPropertyDocument extends IProperty, Document {
+  _id: Types.ObjectId;
+  toPublicJSON(): PublicProperty;
+}
+
+export type PublicProperty = Omit<IProperty, 'owner' | 'agent'> & {
+  id: string;
+  owner: string | PublicUser;
+  agent?: string | PublicUser;
+};
+
+// ============================================
+// Property DTO Types
+// ============================================
+
+export interface CreatePropertyDTO {
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  type: PropertyType;
+  status: PropertyStatus;
+  price: number;
+  currency?: string;
+  area: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  location: PropertyLocation;
+  images?: string[];
+  features?: string[];
+  featuresAr?: string[];
+}
+
+export interface UpdatePropertyDTO {
+  title?: string;
+  titleAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  type?: PropertyType;
+  status?: PropertyStatus;
+  price?: number;
+  currency?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  location?: PropertyLocation;
+  images?: string[];
+  features?: string[];
+  featuresAr?: string[];
+}
+
+export interface PropertyQueryDTO {
+  page?: number;
+  limit?: number;
+  q?: string;
+  type?: PropertyType | PropertyType[];
+  status?: PropertyStatus | PropertyStatus[];
+  category?: PropertyCategory;
+  minPrice?: number;
+  maxPrice?: number;
+  minArea?: number;
+  maxArea?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  city?: string;
+  lng?: number;
+  lat?: number;
+  radius?: number;
+  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';
+  featured?: boolean;
+}

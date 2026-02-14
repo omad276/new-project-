@@ -90,7 +90,6 @@ const mapSchema = new Schema<IMapDocument>(
 // ============================================
 
 mapSchema.index({ project: 1, createdAt: -1 });
-mapSchema.index({ uploadedBy: 1 });
 mapSchema.index({ status: 1 });
 mapSchema.index({ fileType: 1 });
 

@@ -72,14 +72,19 @@ export function authorize(...allowedRoles: UserRole[]) {
 export const requireAdmin = authorize('admin');
 
 /**
- * Require developer or admin role
+ * Require owner or admin role
  */
-export const requireDeveloper = authorize('developer', 'admin');
+export const requireOwner = authorize('owner', 'admin');
 
 /**
- * Require investor or admin role
+ * Require agent or admin role
  */
-export const requireInvestor = authorize('investor', 'admin');
+export const requireAgent = authorize('agent', 'admin');
+
+/**
+ * Require property creator (owner, agent, or admin)
+ */
+export const requirePropertyCreator = authorize('owner', 'agent', 'admin');
 
 /**
  * Require the authenticated user to be the resource owner or an admin

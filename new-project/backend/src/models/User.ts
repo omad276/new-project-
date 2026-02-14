@@ -36,8 +36,8 @@ const userSchema = new Schema<IUserDocument>(
     },
     role: {
       type: String,
-      enum: ['user', 'developer', 'investor', 'admin'] as UserRole[],
-      default: 'user',
+      enum: ['buyer', 'owner', 'agent', 'admin'] as UserRole[],
+      default: 'buyer',
     },
     avatar: {
       type: String,

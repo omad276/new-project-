@@ -25,7 +25,6 @@ const measurementSchema = new Schema<IMeasurementDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Map',
       required: [true, 'Map is required'],
-      index: true,
     },
     project: {
       type: Schema.Types.ObjectId,

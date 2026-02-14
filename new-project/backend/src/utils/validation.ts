@@ -6,7 +6,7 @@ import { AppError } from './AppError.js';
 // ============================================
 
 // User role enum
-export const userRoleSchema = z.enum(['user', 'developer', 'investor', 'admin']);
+export const userRoleSchema = z.enum(['buyer', 'owner', 'agent', 'admin']);
 
 // Email validation
 const emailSchema = z
@@ -47,7 +47,7 @@ export const registerSchema = z.object({
   password: passwordSchema,
   fullName: fullNameSchema,
   phone: phoneSchema,
-  role: userRoleSchema.default('user'),
+  role: userRoleSchema.default('buyer'),
 });
 
 export const loginSchema = z.object({
@@ -174,3 +174,104 @@ export const projectQuerySchema = z.object({
 export type CreateProjectInput = z.output<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 export type ProjectQueryInput = z.output<typeof projectQuerySchema>;
+
+// ============================================
+// Property Validation Schemas
+// ============================================
+
+export const propertyTypeSchema = z.enum([
+  'apartment',
+  'villa',
+  'office',
+  'land',
+  'building',
+  'warehouse',
+  'factory',
+  'industrial_land',
+]);
+
+export const propertyStatusSchema = z.enum([
+  'for_sale',
+  'for_rent',
+  'off_plan',
+  'investment',
+  'sold',
+  'rented',
+]);
+
+export const propertyCategorySchema = z.enum(['residential', 'commercial', 'industrial']);
+
+const coordinatesSchema = z.object({
+  type: z.literal('Point').default('Point'),
+  coordinates: z.tuple([
+    z.number().min(-180).max(180), // longitude
+    z.number().min(-90).max(90), // latitude
+  ]),
+});
+
+const locationSchema = z.object({
+  address: z.string().min(5, 'Address must be at least 5 characters').max(500).trim(),
+  addressAr: z.string().min(5, 'Arabic address must be at least 5 characters').max(500).trim(),
+  city: z.string().min(2, 'City is required').max(100).trim(),
+  cityAr: z.string().min(2, 'Arabic city name is required').max(100).trim(),
+  country: z.string().default('Saudi Arabia'),
+  countryAr: z.string().default('المملكة العربية السعودية'),
+  coordinates: coordinatesSchema,
+});
+
+export const createPropertySchema = z.object({
+  title: z.string().min(5, 'Title must be at least 5 characters').max(200).trim(),
+  titleAr: z.string().min(5, 'Arabic title must be at least 5 characters').max(200).trim(),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(5000).trim(),
+  descriptionAr: z
+    .string()
+    .min(20, 'Arabic description must be at least 20 characters')
+    .max(5000)
+    .trim(),
+  type: propertyTypeSchema,
+  status: propertyStatusSchema,
+  price: z.number().positive('Price must be positive'),
+  currency: z.enum(['SAR', 'USD', 'EUR', 'AED']).default('SAR'),
+  area: z.number().positive('Area must be positive'),
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
+  location: locationSchema,
+  images: z.array(z.string().url('Invalid image URL')).max(20).default([]),
+  features: z.array(z.string().trim().max(100)).max(30).default([]),
+  featuresAr: z.array(z.string().trim().max(100)).max(30).default([]),
+});
+
+export const updatePropertySchema = createPropertySchema.partial();
+
+export const propertyQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(12),
+  q: z.string().optional(), // text search
+  type: z
+    .union([propertyTypeSchema, z.array(propertyTypeSchema)])
+    .optional()
+    .transform((v) => (v ? (Array.isArray(v) ? v : [v]) : undefined)),
+  status: z
+    .union([propertyStatusSchema, z.array(propertyStatusSchema)])
+    .optional()
+    .transform((v) => (v ? (Array.isArray(v) ? v : [v]) : undefined)),
+  category: propertyCategorySchema.optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  minArea: z.coerce.number().min(0).optional(),
+  maxArea: z.coerce.number().min(0).optional(),
+  bedrooms: z.coerce.number().int().min(0).optional(),
+  bathrooms: z.coerce.number().int().min(0).optional(),
+  city: z.string().optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  radius: z.coerce.number().min(1).max(100).default(10).optional(), // km
+  sort: z
+    .enum(['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'])
+    .default('newest'),
+  featured: z.coerce.boolean().optional(),
+});
+
+export type CreatePropertyInput = z.output<typeof createPropertySchema>;
+export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
+export type PropertyQueryInput = z.output<typeof propertyQuerySchema>;

@@ -140,7 +140,6 @@ const costEstimateSchema = new Schema<ICostEstimateDocument>(
 // ============================================
 
 costEstimateSchema.index({ project: 1, createdAt: -1 });
-costEstimateSchema.index({ map: 1 });
 costEstimateSchema.index({ createdBy: 1 });
 
 // ============================================
