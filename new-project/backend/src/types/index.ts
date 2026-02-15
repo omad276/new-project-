@@ -361,86 +361,45 @@ export type PublicCostEstimate = Omit<
 // Property Types
 // ============================================
 
-export type PropertyType =
-  | 'apartment'
-  | 'villa'
-  | 'office'
-  | 'land'
-  | 'building'
-  | 'warehouse'
-  | 'factory'
-  | 'industrial_land';
+export type PropertyType = 'sale' | 'rent' | 'investment' | 'partnership';
 
-export type PropertyStatus =
-  | 'for_sale'
-  | 'for_rent'
-  | 'off_plan'
-  | 'investment'
-  | 'sold'
-  | 'rented';
+export type PropertyCategory = 'residential' | 'commercial' | 'industrial' | 'land';
 
-export type PropertyCategory = 'residential' | 'commercial' | 'industrial';
+export type PropertyStatus = 'available' | 'sold' | 'rented';
 
-// Map property types to categories
-export const PROPERTY_CATEGORY_MAP: Record<PropertyType, PropertyCategory> = {
-  apartment: 'residential',
-  villa: 'residential',
-  office: 'commercial',
-  land: 'commercial',
-  building: 'commercial',
-  warehouse: 'industrial',
-  factory: 'industrial',
-  industrial_land: 'industrial',
-};
+export type SizeUnit = 'sqm' | 'sqft';
 
 export interface PropertyLocation {
-  address: string;
-  addressAr: string;
-  city: string;
-  cityAr: string;
-  country: string;
-  countryAr: string;
-  coordinates: {
-    type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
+  country?: string;
+  city?: string;
+  address?: string;
+  coordinates?: {
+    lat?: number;
+    lng?: number;
   };
 }
 
 export interface IProperty {
   title: string;
-  titleAr: string;
-  description: string;
-  descriptionAr: string;
+  description?: string;
   type: PropertyType;
   category: PropertyCategory;
-  status: PropertyStatus;
   price: number;
   currency: string;
-  area: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  location: PropertyLocation;
-  images: string[];
-  features: string[];
-  featuresAr: string[];
-  owner: Types.ObjectId;
-  agent?: Types.ObjectId;
-  isActive: boolean;
-  isFeatured: boolean;
-  viewCount: number;
+  location?: PropertyLocation;
+  size?: number;
+  sizeUnit: SizeUnit;
+  status: PropertyStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface IPropertyDocument extends IProperty, Document {
   _id: Types.ObjectId;
-  toPublicJSON(): PublicProperty;
 }
 
-export type PublicProperty = Omit<IProperty, 'owner' | 'agent'> & {
+export type PublicProperty = IProperty & {
   id: string;
-  owner: string | PublicUser;
-  agent?: string | PublicUser;
 };
 
 // ============================================
@@ -449,38 +408,27 @@ export type PublicProperty = Omit<IProperty, 'owner' | 'agent'> & {
 
 export interface CreatePropertyDTO {
   title: string;
-  titleAr: string;
-  description: string;
-  descriptionAr: string;
+  description?: string;
   type: PropertyType;
-  status: PropertyStatus;
+  category: PropertyCategory;
   price: number;
   currency?: string;
-  area: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  location: PropertyLocation;
-  images?: string[];
-  features?: string[];
-  featuresAr?: string[];
+  location?: PropertyLocation;
+  size?: number;
+  sizeUnit?: SizeUnit;
 }
 
 export interface UpdatePropertyDTO {
   title?: string;
-  titleAr?: string;
   description?: string;
-  descriptionAr?: string;
   type?: PropertyType;
-  status?: PropertyStatus;
+  category?: PropertyCategory;
   price?: number;
   currency?: string;
-  area?: number;
-  bedrooms?: number;
-  bathrooms?: number;
   location?: PropertyLocation;
-  images?: string[];
-  features?: string[];
-  featuresAr?: string[];
+  size?: number;
+  sizeUnit?: SizeUnit;
+  status?: PropertyStatus;
 }
 
 export interface PropertyQueryDTO {
@@ -488,18 +436,40 @@ export interface PropertyQueryDTO {
   limit?: number;
   q?: string;
   type?: PropertyType | PropertyType[];
-  status?: PropertyStatus | PropertyStatus[];
   category?: PropertyCategory;
+  status?: PropertyStatus;
   minPrice?: number;
   maxPrice?: number;
-  minArea?: number;
-  maxArea?: number;
-  bedrooms?: number;
-  bathrooms?: number;
+  minSize?: number;
+  maxSize?: number;
   city?: string;
-  lng?: number;
-  lat?: number;
-  radius?: number;
-  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';
-  featured?: boolean;
+  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
+}
+
+// ============================================
+// User Management DTO Types (Admin)
+// ============================================
+
+export interface UserQueryDTO {
+  page?: number;
+  limit?: number;
+  role?: UserRole;
+  isActive?: boolean;
+  isVerified?: boolean;
+  q?: string;
+}
+
+export interface UpdateUserDTO {
+  role?: UserRole;
+  isActive?: boolean;
+  isVerified?: boolean;
+  fullName?: string;
+  phone?: string;
+}
+
+export interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  verifiedUsers: number;
+  byRole: Record<UserRole, number>;
 }
