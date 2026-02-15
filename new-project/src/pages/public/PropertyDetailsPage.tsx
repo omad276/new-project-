@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -21,59 +21,46 @@ import { Input } from '@/components/ui/Input';
 import { ImageGallery } from '@/components/ui/ImageGallery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
+import { Spinner } from '@/components/ui/Spinner';
 import { PropertyMap } from '@/components/map';
 import { cn, formatPrice, formatArea } from '@/lib/utils';
-import type { Property, PropertyStatus } from '@/types';
+import { api } from '@/lib/api';
+import type { PropertyStatus } from '@/types';
 import type { BadgeProps } from '@/components/ui/Badge';
 
-// Mock property data
-const mockProperty: Property = {
-  id: '1',
-  title: 'Luxury Villa in Riyadh',
-  titleAr: 'فيلا فاخرة في الرياض',
-  description:
-    'This stunning 5-bedroom villa offers the perfect blend of luxury and comfort. Located in the prestigious Al Olaya District, this property features a private swimming pool, landscaped garden, and modern amenities throughout. The villa spans 450 square meters of living space with high ceilings, marble flooring, and floor-to-ceiling windows that flood the interior with natural light.',
-  descriptionAr:
-    'تقدم هذه الفيلا الرائعة المكونة من 5 غرف نوم المزيج المثالي من الفخامة والراحة. تقع في حي العليا المرموق، وتتميز هذه العقار بمسبح خاص وحديقة منسقة ووسائل راحة حديثة في جميع أنحائها. تمتد الفيلا على مساحة 450 متر مربع من المساحة المعيشية مع أسقف عالية وأرضيات رخامية ونوافذ ممتدة من الأرض حتى السقف.',
-  type: 'villa',
-  status: 'for_sale',
-  price: 2500000,
-  currency: 'SAR',
-  area: 450,
-  bedrooms: 5,
-  bathrooms: 4,
+// Property type from API
+interface PropertyData {
+  _id: string;
+  title: string;
+  titleAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  type: string;
+  status: string;
+  price: number;
+  currency: string;
+  area: number;
+  bedrooms?: number;
+  bathrooms?: number;
   location: {
-    address: 'Al Olaya District, King Fahd Road',
-    addressAr: 'حي العليا، طريق الملك فهد',
-    city: 'Riyadh',
-    cityAr: 'الرياض',
-    country: 'Saudi Arabia',
-    countryAr: 'السعودية',
-    latitude: 24.7136,
-    longitude: 46.6753,
-  },
-  images: [
-    'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200',
-    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200',
-    'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200',
-  ],
-  features: [
-    'Private Pool',
-    'Garden',
-    'Garage (3 cars)',
-    'Smart Home System',
-    'Central AC',
-    'Maid Room',
-    'Driver Room',
-    'Security System',
-    'Backup Generator',
-  ],
-  ownerId: '1',
-  createdAt: new Date('2024-01-15'),
-  updatedAt: new Date('2024-01-15'),
-};
+    address?: string;
+    addressAr?: string;
+    city?: string;
+    cityAr?: string;
+    country?: string;
+    countryAr?: string;
+    coordinates?: {
+      type: string;
+      coordinates: [number, number]; // [lng, lat]
+    };
+  };
+  images: string[];
+  features?: string[];
+  featuresAr?: string[];
+  owner?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const mockAgent = {
   id: '1',
@@ -91,6 +78,9 @@ function PropertyDetailsPage() {
   const { id: propertyId } = useParams<{ id: string }>();
   const isArabic = i18n.language === 'ar';
 
+  const [property, setProperty] = useState<PropertyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -100,20 +90,80 @@ function PropertyDetailsPage() {
     message: '',
   });
 
-  // In real app, fetch property by id from API
-  // For now, using mock data. propertyId would be used to fetch: `/api/properties/${propertyId}`
-  const property = mockProperty;
   const agent = mockAgent;
 
-  // Log propertyId for debugging (remove in production)
-  console.debug('Viewing property:', propertyId);
+  // Fetch property data from API
+  useEffect(() => {
+    async function fetchProperty() {
+      if (!propertyId) return;
 
-  const title = isArabic ? property.titleAr : property.title;
-  const description = isArabic ? property.descriptionAr : property.description;
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await api.get<PropertyData>(`/properties/${propertyId}`);
+
+        if (response.success && response.data) {
+          setProperty(response.data);
+        } else {
+          setError(response.message || 'Property not found');
+        }
+      } catch {
+        setError('Failed to load property');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProperty();
+  }, [propertyId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <h2 className="text-2xl font-bold text-error">
+          {isArabic ? 'العقار غير موجود' : 'Property Not Found'}
+        </h2>
+        <p className="text-text-secondary">{error}</p>
+        <Link to="/properties">
+          <Button>{isArabic ? 'العودة للعقارات' : 'Back to Properties'}</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const title = isArabic ? property.titleAr || property.title : property.title;
+  const description = isArabic
+    ? property.descriptionAr || property.description
+    : property.description;
   const address = isArabic
-    ? `${property.location.addressAr}، ${property.location.cityAr}`
-    : `${property.location.address}, ${property.location.city}`;
+    ? `${property.location.addressAr || property.location.address || ''}, ${property.location.cityAr || property.location.city || ''}`
+    : `${property.location.address || ''}, ${property.location.city || ''}`;
   const agentName = isArabic ? agent.nameAr : agent.name;
+  const features = isArabic
+    ? property.featuresAr || property.features || []
+    : property.features || [];
+
+  // Get coordinates (GeoJSON format: [lng, lat])
+  const lng = property.location.coordinates?.coordinates?.[0] || 46.6753;
+  const lat = property.location.coordinates?.coordinates?.[1] || 24.7136;
+
+  // Map status to display format
+  const statusMap: Record<string, PropertyStatus> = {
+    for_sale: 'for_sale',
+    for_rent: 'for_rent',
+    sold: 'sold',
+    rented: 'rented',
+  };
+  const propertyStatus = statusMap[property.status] || 'for_sale';
 
   const statusLabels: Record<PropertyStatus, string> = {
     for_sale: t('property.forSale'),
@@ -129,12 +179,20 @@ function PropertyDetailsPage() {
     rented: 'warning',
   };
 
+  // Build images array - use uploaded images or placeholder
+  const images =
+    property.images.length > 0
+      ? property.images.map((img) =>
+          img.startsWith('http') ? img : `http://localhost:3002/${img}`
+        )
+      : ['https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800'];
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
           title: title,
-          text: description,
+          text: description || '',
           url: window.location.href,
         });
       } catch (err) {
@@ -171,17 +229,17 @@ function PropertyDetailsPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Image Gallery */}
-            <ImageGallery images={property.images} alt={title} />
+            <ImageGallery images={images} alt={title} />
 
             {/* Property Header */}
             <div>
               <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant={statusVariants[property.status]}>
-                      {statusLabels[property.status]}
+                    <Badge variant={statusVariants[propertyStatus]}>
+                      {statusLabels[propertyStatus]}
                     </Badge>
-                    <Badge variant="default">{t(`property.${property.type}`)}</Badge>
+                    <Badge variant="default">{t(`property.${property.type}`) || property.type}</Badge>
                   </div>
                   <h1 className="text-3xl font-bold">{title}</h1>
                   <div className="flex items-center gap-2 text-text-secondary mt-2">
@@ -256,7 +314,7 @@ function PropertyDetailsPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold">
-                    {property.createdAt.toLocaleDateString(isArabic ? 'ar-SA' : 'en-US', {
+                    {new Date(property.createdAt).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US', {
                       month: 'short',
                       year: 'numeric',
                     })}
@@ -269,49 +327,47 @@ function PropertyDetailsPage() {
             </div>
 
             {/* Description */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{isArabic ? 'الوصف' : 'Description'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-text-secondary leading-relaxed whitespace-pre-line">
-                  {description}
-                </p>
-              </CardContent>
-            </Card>
+            {description && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{isArabic ? 'الوصف' : 'Description'}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-text-secondary leading-relaxed whitespace-pre-line">
+                    {description}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Features */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{isArabic ? 'المميزات' : 'Features'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {property.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="p-1 rounded-full bg-success/10">
-                        <Check className="w-4 h-4 text-success" />
+            {features.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{isArabic ? 'المميزات' : 'Features'}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="p-1 rounded-full bg-success/10">
+                          <Check className="w-4 h-4 text-success" />
+                        </div>
+                        <span className="text-text-secondary">{feature}</span>
                       </div>
-                      <span className="text-text-secondary">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Location */}
+            {/* Location Map */}
             <Card>
               <CardHeader>
                 <CardTitle>{t('property.location')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <PropertyMap
-                  lat={property.location.latitude}
-                  lng={property.location.longitude}
-                  address={address}
-                  title={title}
-                  className="aspect-video"
-                />
+                <PropertyMap lat={lat} lng={lng} address={address} title={title} className="aspect-video" />
               </CardContent>
             </Card>
           </div>
@@ -350,9 +406,7 @@ function PropertyDetailsPage() {
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-background-tertiary">
-                  <h4 className="font-medium mb-3">
-                    {isArabic ? 'جدولة زيارة' : 'Schedule a Visit'}
-                  </h4>
+                  <h4 className="font-medium mb-3">{isArabic ? 'جدولة زيارة' : 'Schedule a Visit'}</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {['Sat', 'Sun', 'Mon'].map((day) => (
                       <button
@@ -412,9 +466,7 @@ function PropertyDetailsPage() {
                 rows={4}
                 className="w-full px-4 py-2.5 rounded-lg bg-background-secondary border border-background-tertiary text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder={
-                  isArabic
-                    ? 'أنا مهتم بهذا العقار...'
-                    : "I'm interested in this property..."
+                  isArabic ? 'أنا مهتم بهذا العقار...' : "I'm interested in this property..."
                 }
                 required
               />

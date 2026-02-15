@@ -46,7 +46,15 @@
     "office": "مكتب",
     "land": "أرض",
     "building": "مبنى",
-    "sqm": "م²"
+    "sqm": "م²",
+    "factory": "مصنع",
+    "industrialLand": "أرض صناعية",
+    "offPlan": "على الخارطة",
+    "investment": "استثمار",
+    "warehouse": "مستودع",
+    "commercial": "تجاري",
+    "residential": "سكني",
+    "industrial": "صناعي"
   },
   "auth": {
     "email": "البريد الإلكتروني",

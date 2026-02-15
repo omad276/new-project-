@@ -42,6 +42,80 @@ export interface PropertyStats {
 }
 
 // ============================================
+// Helper to transform API property to frontend Property
+// ============================================
+
+interface ApiProperty {
+  _id: string;
+  title: string;
+  titleAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  type: string;
+  status: string;
+  price: number;
+  currency: string;
+  area: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  location: {
+    address?: string;
+    addressAr?: string;
+    city?: string;
+    cityAr?: string;
+    country?: string;
+    countryAr?: string;
+    coordinates?: {
+      type: string;
+      coordinates: [number, number];
+    };
+  };
+  images: string[];
+  features?: string[];
+  featuresAr?: string[];
+  owner?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  viewCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function transformProperty(apiProp: ApiProperty): Property {
+  return {
+    id: apiProp._id,
+    title: apiProp.title,
+    titleAr: apiProp.titleAr,
+    description: apiProp.description,
+    descriptionAr: apiProp.descriptionAr,
+    type: apiProp.type as PropertyType,
+    status: apiProp.status as PropertyStatus,
+    price: apiProp.price,
+    currency: apiProp.currency,
+    area: apiProp.area,
+    bedrooms: apiProp.bedrooms,
+    bathrooms: apiProp.bathrooms,
+    location: {
+      address: apiProp.location.address || '',
+      addressAr: apiProp.location.addressAr || '',
+      city: apiProp.location.city || '',
+      cityAr: apiProp.location.cityAr || '',
+      country: apiProp.location.country || '',
+      countryAr: apiProp.location.countryAr || '',
+      latitude: apiProp.location.coordinates?.coordinates[1] || 0,
+      longitude: apiProp.location.coordinates?.coordinates[0] || 0,
+    },
+    images: apiProp.images.map((img) =>
+      img.startsWith('http') ? img : `http://localhost:3002/${img}`
+    ),
+    features: apiProp.features || [],
+    ownerId: apiProp.owner || '',
+    createdAt: new Date(apiProp.createdAt),
+    updatedAt: new Date(apiProp.updatedAt),
+  };
+}
+
+// ============================================
 // Property Service
 // ============================================
 
@@ -65,21 +139,34 @@ export const propertyService = {
     const queryString = searchParams.toString();
     const url = queryString ? `/properties?${queryString}` : '/properties';
 
-    return api.get<Property[]>(url) as Promise<PaginatedResponse<Property>>;
+    const response = await api.get<ApiProperty[]>(url);
+
+    return {
+      ...response,
+      data: response.data ? response.data.map(transformProperty) : [],
+    } as PaginatedResponse<Property>;
   },
 
   /**
    * Get featured properties
    */
   async getFeaturedProperties(limit: number = 6): Promise<ApiResponse<Property[]>> {
-    return api.get<Property[]>(`/properties/featured?limit=${limit}`);
+    const response = await api.get<ApiProperty[]>(`/properties/featured?limit=${limit}`);
+    return {
+      ...response,
+      data: response.data ? response.data.map(transformProperty) : undefined,
+    };
   },
 
   /**
    * Get single property by ID
    */
   async getProperty(id: string): Promise<ApiResponse<Property>> {
-    return api.get<Property>(`/properties/${id}`);
+    const response = await api.get<ApiProperty>(`/properties/${id}`);
+    return {
+      ...response,
+      data: response.data ? transformProperty(response.data) : undefined,
+    };
   },
 
   /**
@@ -87,7 +174,11 @@ export const propertyService = {
    */
   async getMyProperties(includeInactive: boolean = false): Promise<ApiResponse<Property[]>> {
     const url = includeInactive ? '/properties/my?includeInactive=true' : '/properties/my';
-    return api.get<Property[]>(url);
+    const response = await api.get<ApiProperty[]>(url);
+    return {
+      ...response,
+      data: response.data ? response.data.map(transformProperty) : undefined,
+    };
   },
 
   /**

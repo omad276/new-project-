@@ -18,16 +18,35 @@ const app = express();
 // Security Middleware
 // ============================================
 
-// Set security HTTP headers
-app.use(helmet());
-
-// Enable CORS
+// Enable CORS - must be before helmet
 app.use(
   cors({
-    origin: config.cors.origins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      // In development, allow all localhost origins
+      if (config.isDevelopment && origin.includes('localhost')) {
+        return callback(null, true);
+      }
+
+      // Check against allowed origins
+      if (config.cors.origins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: config.cors.credentials,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// Set security HTTP headers (after CORS)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
 
