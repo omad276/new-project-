@@ -1,0 +1,6 @@
+export { DashboardOverview } from './DashboardOverview';
+export { MyPropertiesPage } from './MyPropertiesPage';
+export { FavoritesPage } from './FavoritesPage';
+export { ComparePage } from './ComparePage';
+export { NotificationsPage } from './NotificationsPage';
+export { SettingsPage } from './SettingsPage';

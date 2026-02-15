@@ -1,0 +1,85 @@
+{
+  "common": {
+    "appName": "Upgreat",
+    "tagline": "Smart Real Estate Platform",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "home": "Home",
+    "properties": "Properties",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
+  },
+  "property": {
+    "forSale": "For Sale",
+    "forRent": "For Rent",
+    "price": "Price",
+    "area": "Area",
+    "bedrooms": "Bedrooms",
+    "bathrooms": "Bathrooms",
+    "location": "Location",
+    "type": "Type",
+    "apartment": "Apartment",
+    "villa": "Villa",
+    "office": "Office",
+    "land": "Land",
+    "building": "Building",
+    "sqm": "sqm"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "loginTitle": "Sign In",
+    "registerTitle": "Create Account",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginButton": "Sign In",
+    "registerButton": "Register"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "myProperties": "My Properties",
+    "favorites": "Favorites",
+    "compare": "Compare Properties",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "properties": "Manage Properties",
+    "users": "Manage Users",
+    "analytics": "Analytics & Reports"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions"
+  }
+}

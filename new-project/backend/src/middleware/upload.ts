@@ -101,6 +101,60 @@ export const uploadMap = multer({
 });
 
 // ============================================
+// Property Image Upload Configuration
+// ============================================
+
+const PROPERTY_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const PROPERTY_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+const PROPERTY_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const PROPERTY_MAX_FILES = 20;
+
+const propertyImageStorage = multer.diskStorage({
+  destination: (_req: Request, _file: Express.Multer.File, cb) => {
+    cb(null, 'uploads/properties');
+  },
+  filename: (_req: Request, file: Express.Multer.File, cb) => {
+    const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${Date.now()}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const propertyImageFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  // Check extension
+  if (!PROPERTY_IMAGE_EXTENSIONS.includes(ext)) {
+    return cb(
+      new AppError(
+        `Invalid image type. Allowed types: ${PROPERTY_IMAGE_EXTENSIONS.join(', ')}`,
+        400
+      )
+    );
+  }
+
+  // Check mime type
+  if (!PROPERTY_IMAGE_MIME_TYPES.includes(file.mimetype)) {
+    return cb(new AppError(`Invalid image MIME type: ${file.mimetype}`, 400));
+  }
+
+  cb(null, true);
+};
+
+export const uploadPropertyImages = multer({
+  storage: propertyImageStorage,
+  fileFilter: propertyImageFilter,
+  limits: {
+    fileSize: PROPERTY_MAX_FILE_SIZE,
+    files: PROPERTY_MAX_FILES,
+  },
+});
+
+// ============================================
 // Helper Functions
 // ============================================
 
