@@ -11,6 +11,7 @@ import {
   PropertyDetailsPage,
   LoginPage,
   RegisterPage,
+  BlueprintDemoPage,
 } from '@/pages/public';
 import {
   DashboardOverview,
@@ -88,6 +89,14 @@ function App() {
           element={
             <MainLayout>
               <PropertyDetailsPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/blueprint"
+          element={
+            <MainLayout>
+              <BlueprintDemoPage />
             </MainLayout>
           }
         />
