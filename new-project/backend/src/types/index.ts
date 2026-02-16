@@ -217,6 +217,14 @@ export interface UpdateProjectDTO {
 
 export type MapFileType = 'cad' | 'pdf' | 'image';
 export type MapStatus = 'uploading' | 'processing' | 'ready' | 'error';
+export type ScaleUnit = 'm' | 'cm' | 'mm' | 'ft' | 'in';
+
+export interface MapScale {
+  pixelDistance: number;
+  realDistance: number;
+  unit: ScaleUnit;
+  ratio: number;
+}
 
 export interface IMap {
   project: Types.ObjectId;
@@ -235,6 +243,7 @@ export interface IMap {
     pages?: number;
     layers?: string[];
   };
+  scale?: MapScale;
   version: number;
   uploadedBy: Types.ObjectId;
   createdAt: Date;
@@ -251,6 +260,7 @@ export type PublicMap = Omit<IMap, 'project' | 'uploadedBy' | 'storagePath'> & {
   project: string;
   uploadedBy: string | PublicUser;
   downloadUrl: string;
+  scale?: MapScale;
 };
 
 // ============================================

@@ -131,3 +131,33 @@ export async function getMapStats(req: AuthRequest, res: Response<ApiResponse>):
     data: stats,
   });
 }
+
+/**
+ * PATCH /api/maps/:id/calibrate
+ * Calibrate map scale for real-world measurements
+ */
+export async function calibrateMap(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
+  const { pixelDistance, realDistance, unit } = req.body;
+
+  if (typeof pixelDistance !== 'number' || pixelDistance <= 0) {
+    throw AppError.badRequest('pixelDistance must be a positive number');
+  }
+  if (typeof realDistance !== 'number' || realDistance <= 0) {
+    throw AppError.badRequest('realDistance must be a positive number');
+  }
+  if (!['m', 'cm', 'mm', 'ft', 'in'].includes(unit)) {
+    throw AppError.badRequest('unit must be one of: m, cm, mm, ft, in');
+  }
+
+  const map = await mapService.calibrateMap(req.params.id, req.user!.userId, {
+    pixelDistance,
+    realDistance,
+    unit,
+  });
+
+  res.json({
+    success: true,
+    message: 'Map calibrated successfully',
+    data: map,
+  });
+}

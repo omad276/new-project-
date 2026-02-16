@@ -14,6 +14,8 @@ import {
   Point3D,
   CostItem,
   CostCategory,
+  MapScale,
+  ScaleUnit,
 } from '../types/index.js';
 
 // ============================================
@@ -84,9 +86,77 @@ function calculateVolume(points: Point3D[], height?: number): number {
 }
 
 /**
+ * Convert scale unit to appropriate measurement unit based on type
+ */
+function scaleUnitToMeasurementUnit(scaleUnit: ScaleUnit, type: MeasurementType): MeasurementUnit {
+  switch (type) {
+    case 'area':
+      return scaleUnit === 'ft' || scaleUnit === 'in' ? 'sqft' : 'sqm';
+    case 'volume':
+      return scaleUnit === 'ft' || scaleUnit === 'in' ? 'cbft' : 'cbm';
+    case 'angle':
+      return 'deg';
+    default:
+      return scaleUnit as MeasurementUnit;
+  }
+}
+
+/**
+ * Convert value from one linear unit to meters for consistent storage
+ */
+function convertToMeters(value: number, fromUnit: ScaleUnit): number {
+  const toMeterFactors: Record<ScaleUnit, number> = {
+    m: 1,
+    cm: 0.01,
+    mm: 0.001,
+    ft: 0.3048,
+    in: 0.0254,
+  };
+  return value * toMeterFactors[fromUnit];
+}
+
+/**
+ * Apply scale calibration to pixel measurement
+ */
+function applyScale(
+  pixelValue: number,
+  scale: MapScale | undefined,
+  type: MeasurementType
+): number {
+  if (!scale || !scale.ratio) {
+    // Default: 100px = 1m (legacy fallback)
+    const defaultRatio = 0.01;
+    switch (type) {
+      case 'area':
+        return pixelValue * defaultRatio * defaultRatio;
+      case 'volume':
+        return pixelValue * defaultRatio * defaultRatio * defaultRatio;
+      default:
+        return pixelValue * defaultRatio;
+    }
+  }
+
+  // Convert ratio to meters for consistent storage
+  const ratioInMeters = convertToMeters(scale.ratio, scale.unit);
+
+  switch (type) {
+    case 'area':
+      return pixelValue * ratioInMeters * ratioInMeters;
+    case 'volume':
+      return pixelValue * ratioInMeters * ratioInMeters * ratioInMeters;
+    default:
+      return pixelValue * ratioInMeters;
+  }
+}
+
+/**
  * Get appropriate unit for measurement type
  */
-function getDefaultUnit(type: MeasurementType): MeasurementUnit {
+function getDefaultUnit(type: MeasurementType, scale?: MapScale): MeasurementUnit {
+  if (scale?.unit) {
+    return scaleUnitToMeasurementUnit(scale.unit, type);
+  }
+
   switch (type) {
     case 'area':
       return 'sqm';
@@ -161,35 +231,38 @@ export async function createMeasurement(input: CreateMeasurementInput): Promise<
     throw AppError.forbidden('You can only add measurements to your own projects');
   }
 
-  // Calculate value based on type
-  let value: number;
+  // Calculate pixel value based on type
+  let pixelValue: number;
   switch (type) {
     case 'distance':
-      value =
+      pixelValue =
         points.length === 2
           ? calculateDistance(points[0], points[1])
           : calculatePerimeter(points as Point2D[]);
       break;
     case 'area':
-      value = calculatePolygonArea(points as Point2D[]);
+      pixelValue = calculatePolygonArea(points as Point2D[]);
       break;
     case 'perimeter':
-      value = calculatePerimeter(points as Point2D[]);
+      pixelValue = calculatePerimeter(points as Point2D[]);
       break;
     case 'volume':
-      value = calculateVolume(points as Point3D[]);
+      pixelValue = calculateVolume(points as Point3D[]);
       break;
     case 'angle':
       if (points.length !== 3) {
         throw AppError.badRequest('Angle measurement requires exactly 3 points');
       }
-      value = calculateAngle(points[0], points[1], points[2]);
+      pixelValue = calculateAngle(points[0], points[1], points[2]);
       break;
     default:
       throw AppError.badRequest(`Unknown measurement type: ${type}`);
   }
 
-  const measurementUnit = unit || getDefaultUnit(type);
+  // Apply scale calibration (angle doesn't need scaling)
+  const value = type === 'angle' ? pixelValue : applyScale(pixelValue, map.scale, type);
+
+  const measurementUnit = unit || getDefaultUnit(type, map.scale);
   const displayValue = formatDisplayValue(value, measurementUnit);
 
   const measurement = await Measurement.create({

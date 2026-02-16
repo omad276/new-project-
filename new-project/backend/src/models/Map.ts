@@ -1,5 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { IMapDocument, PublicMap, MapFileType, MapStatus } from '../types/index.js';
+import { IMapDocument, PublicMap, MapFileType, MapStatus, ScaleUnit } from '../types/index.js';
 
 // ============================================
 // Map Schema Definition
@@ -58,6 +58,12 @@ const mapSchema = new Schema<IMapDocument>(
       height: Number,
       pages: Number,
       layers: [String],
+    },
+    scale: {
+      pixelDistance: { type: Number },
+      realDistance: { type: Number },
+      unit: { type: String, enum: ['m', 'cm', 'mm', 'ft', 'in'] as ScaleUnit[] },
+      ratio: { type: Number },
     },
     version: {
       type: Number,
@@ -128,6 +134,7 @@ mapSchema.methods.toPublicJSON = function (): PublicMap {
     status: this.status,
     processingError: this.processingError,
     metadata: this.metadata,
+    scale: this.scale,
     version: this.version,
     uploadedBy: uploadedById,
     downloadUrl: `/api/maps/${this._id}/download`,

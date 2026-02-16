@@ -18,7 +18,10 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Scale,
+  X,
 } from 'lucide-react';
+import type { MapScale, ScaleUnit } from '@/types';
 import { Button } from '@/components/ui/Button';
 
 // Set up PDF.js worker
@@ -52,9 +55,11 @@ interface BlueprintViewerProps {
   showMeasurements?: boolean;
   editable?: boolean;
   className?: string;
+  mapScale?: MapScale;
+  onCalibrate?: (data: { pixelDistance: number; realDistance: number; unit: ScaleUnit }) => void;
 }
 
-type Tool = 'pan' | 'distance' | 'area' | 'angle';
+type Tool = 'pan' | 'distance' | 'area' | 'angle' | 'calibrate';
 
 // ============================================
 // Component
@@ -69,6 +74,8 @@ export function BlueprintViewer({
   showMeasurements = true,
   editable = false,
   className = '',
+  mapScale,
+  onCalibrate,
 }: BlueprintViewerProps) {
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
@@ -101,6 +108,12 @@ export function BlueprintViewer({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Calibration state
+  const [calibrationPoints, setCalibrationPoints] = useState<Point[]>([]);
+  const [showCalibrationModal, setShowCalibrationModal] = useState(false);
+  const [calibrationDistance, setCalibrationDistance] = useState('');
+  const [calibrationUnit, setCalibrationUnit] = useState<ScaleUnit>('m');
 
   // Colors for measurements
   const measurementColors = ['#FF5722', '#2196F3', '#4CAF50', '#9C27B0', '#FF9800'];
@@ -250,7 +263,7 @@ export function BlueprintViewer({
     if (activeTool !== 'pan' && cursorPosition) {
       drawCrosshair(ctx, cursorPosition);
     }
-  }, [scale, offset, rotation, showMeasurements, measurements, currentPoints, activeTool, cursorPosition, visibleMeasurements]);
+  }, [scale, offset, rotation, showMeasurements, measurements, currentPoints, activeTool, cursorPosition, visibleMeasurements, calibrationPoints]);
 
   useEffect(() => {
     draw();
@@ -359,6 +372,32 @@ export function BlueprintViewer({
   };
 
   const drawCurrentMeasurement = (ctx: CanvasRenderingContext2D) => {
+    // Draw calibration points if in calibration mode
+    if (activeTool === 'calibrate' && calibrationPoints.length > 0) {
+      const transformedCalibPoints = calibrationPoints.map(transformPoint);
+      ctx.strokeStyle = '#E91E63';
+      ctx.fillStyle = '#E91E63';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+
+      ctx.beginPath();
+      ctx.moveTo(transformedCalibPoints[0].x, transformedCalibPoints[0].y);
+      if (transformedCalibPoints.length > 1) {
+        ctx.lineTo(transformedCalibPoints[1].x, transformedCalibPoints[1].y);
+      } else if (cursorPosition) {
+        ctx.lineTo(cursorPosition.x, cursorPosition.y);
+      }
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      transformedCalibPoints.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      return;
+    }
+
     if (currentPoints.length === 0) return;
 
     const transformedPoints = currentPoints.map(transformPoint);
@@ -461,6 +500,15 @@ export function BlueprintViewer({
     if (activeTool === 'pan') {
       setIsDragging(true);
       setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    } else if (activeTool === 'calibrate' && editable) {
+      const imagePoint = inverseTransformPoint({ x, y });
+      if (calibrationPoints.length === 0) {
+        setCalibrationPoints([imagePoint]);
+      } else {
+        // Two points selected, show modal
+        setCalibrationPoints([...calibrationPoints, imagePoint]);
+        setShowCalibrationModal(true);
+      }
     } else if (editable) {
       const imagePoint = inverseTransformPoint({ x, y });
 
@@ -476,7 +524,7 @@ export function BlueprintViewer({
             type: 'distance',
             points,
             value: distance,
-            unit: 'm',
+            unit: mapScale ? getDistanceUnit() : 'm',
             color: measurementColors[measurements.length % measurementColors.length],
             name: `Distance ${measurements.length + 1}`,
           });
@@ -517,7 +565,7 @@ export function BlueprintViewer({
         type: 'area',
         points: currentPoints,
         value: area,
-        unit: 'm²',
+        unit: mapScale ? getAreaUnit() : 'm²',
         color: measurementColors[measurements.length % measurementColors.length],
         name: `Area ${measurements.length + 1}`,
       });
@@ -576,8 +624,29 @@ export function BlueprintViewer({
   // Calculation Helpers
   // ============================================
 
+  // Get the scale ratio (real units per pixel)
+  const getScaleRatio = (): number => {
+    if (mapScale?.ratio) {
+      return mapScale.ratio;
+    }
+    // Default: 100px = 1m => ratio = 0.01
+    return 0.01;
+  };
+
+  // Get distance unit from scale
+  const getDistanceUnit = (): string => {
+    return mapScale?.unit || 'm';
+  };
+
+  // Get area unit from scale
+  const getAreaUnit = (): string => {
+    const unit = mapScale?.unit || 'm';
+    return unit === 'ft' || unit === 'in' ? 'ft²' : 'm²';
+  };
+
   const calculateDistance = (p1: Point, p2: Point): number => {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)) / 100; // Convert to meters (assuming 100px = 1m)
+    const pixelDistance = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    return pixelDistance * getScaleRatio();
   };
 
   const calculatePolygonArea = (points: Point[]): number => {
@@ -589,7 +658,44 @@ export function BlueprintViewer({
       area += points[i].x * points[j].y;
       area -= points[j].x * points[i].y;
     }
-    return Math.abs(area) / 2 / 10000; // Convert to square meters
+    const pixelArea = Math.abs(area) / 2;
+    const ratio = getScaleRatio();
+    return pixelArea * ratio * ratio; // Scale squared for area
+  };
+
+  // Calculate pixel distance for calibration
+  const calculatePixelDistance = (p1: Point, p2: Point): number => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  };
+
+  // Handle calibration submission
+  const handleCalibrationSubmit = () => {
+    if (!calibrationDistance || calibrationPoints.length !== 2) return;
+
+    const pixelDist = calculatePixelDistance(calibrationPoints[0], calibrationPoints[1]);
+    const realDist = parseFloat(calibrationDistance);
+
+    if (pixelDist <= 0 || realDist <= 0 || isNaN(realDist)) return;
+
+    onCalibrate?.({
+      pixelDistance: pixelDist,
+      realDistance: realDist,
+      unit: calibrationUnit,
+    });
+
+    // Reset calibration state
+    setCalibrationPoints([]);
+    setShowCalibrationModal(false);
+    setCalibrationDistance('');
+    setActiveTool('pan');
+  };
+
+  // Cancel calibration
+  const cancelCalibration = () => {
+    setCalibrationPoints([]);
+    setShowCalibrationModal(false);
+    setCalibrationDistance('');
+    setActiveTool('pan');
   };
 
   // ============================================
@@ -648,6 +754,16 @@ export function BlueprintViewer({
         {editable && (
           <>
             <Button
+              variant={activeTool === 'calibrate' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => { setActiveTool('calibrate'); setCurrentPoints([]); setCalibrationPoints([]); }}
+              title={isArabic ? 'معايرة المقياس' : 'Calibrate Scale'}
+              className={!mapScale ? 'text-amber-600' : ''}
+            >
+              <Scale className="w-4 h-4" />
+            </Button>
+
+            <Button
               variant={activeTool === 'distance' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => { setActiveTool('distance'); setCurrentPoints([]); }}
@@ -690,8 +806,19 @@ export function BlueprintViewer({
         </Button>
       </div>
 
-      {/* Scale Indicator & PDF Badge */}
+      {/* Scale Indicator, Calibration Badge & PDF Badge */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
+        {mapScale ? (
+          <div className="bg-green-500/90 backdrop-blur rounded-lg px-3 py-1 shadow-lg text-sm text-white flex items-center gap-1">
+            <Scale className="w-4 h-4" />
+            1px = {mapScale.ratio.toFixed(4)}{mapScale.unit}
+          </div>
+        ) : editable && (
+          <div className="bg-amber-500/90 backdrop-blur rounded-lg px-3 py-1 shadow-lg text-sm text-white flex items-center gap-1">
+            <Scale className="w-4 h-4" />
+            {isArabic ? 'غير معاير' : 'Not Calibrated'}
+          </div>
+        )}
         {isPdf && (
           <div className="bg-red-500/90 backdrop-blur rounded-lg px-3 py-1 shadow-lg text-sm text-white flex items-center gap-1">
             <FileText className="w-4 h-4" />
@@ -797,7 +924,7 @@ export function BlueprintViewer({
       )}
 
       {/* Current Measurement Instructions */}
-      {activeTool !== 'pan' && currentPoints.length > 0 && (
+      {activeTool !== 'pan' && activeTool !== 'calibrate' && currentPoints.length > 0 && (
         <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-lg px-4 py-2 shadow-lg">
           <p className="text-sm">
             {activeTool === 'distance' && (
@@ -815,6 +942,98 @@ export function BlueprintViewer({
           >
             {isArabic ? 'إلغاء' : 'Cancel'}
           </Button>
+        </div>
+      )}
+
+      {/* Calibration Instructions */}
+      {activeTool === 'calibrate' && !showCalibrationModal && (
+        <div className="absolute bottom-4 right-4 bg-pink-50 border border-pink-200 backdrop-blur rounded-lg px-4 py-3 shadow-lg max-w-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <Scale className="w-5 h-5 text-pink-600" />
+            <span className="font-medium text-pink-900">
+              {isArabic ? 'معايرة المقياس' : 'Scale Calibration'}
+            </span>
+          </div>
+          <p className="text-sm text-pink-800">
+            {calibrationPoints.length === 0
+              ? (isArabic ? 'انقر على نقطة البداية لمسافة معروفة' : 'Click the start point of a known distance')
+              : (isArabic ? 'انقر على نقطة النهاية' : 'Click the end point')
+            }
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-red-500"
+            onClick={cancelCalibration}
+          >
+            {isArabic ? 'إلغاء' : 'Cancel'}
+          </Button>
+        </div>
+      )}
+
+      {/* Calibration Modal */}
+      {showCalibrationModal && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Scale className="w-5 h-5 text-pink-600" />
+                {isArabic ? 'أدخل المسافة الحقيقية' : 'Enter Real Distance'}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={cancelCalibration}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              {isArabic
+                ? 'ما هي المسافة الفعلية بين النقطتين المحددتين؟'
+                : 'What is the actual distance between the two selected points?'
+              }
+            </p>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                value={calibrationDistance}
+                onChange={(e) => setCalibrationDistance(e.target.value)}
+                placeholder={isArabic ? 'المسافة' : 'Distance'}
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                min="0"
+                step="0.01"
+                autoFocus
+              />
+              <select
+                value={calibrationUnit}
+                onChange={(e) => setCalibrationUnit(e.target.value as ScaleUnit)}
+                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+              >
+                <option value="m">{isArabic ? 'متر' : 'Meters (m)'}</option>
+                <option value="cm">{isArabic ? 'سنتيمتر' : 'Centimeters (cm)'}</option>
+                <option value="mm">{isArabic ? 'ميليمتر' : 'Millimeters (mm)'}</option>
+                <option value="ft">{isArabic ? 'قدم' : 'Feet (ft)'}</option>
+                <option value="in">{isArabic ? 'بوصة' : 'Inches (in)'}</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={cancelCalibration}
+              >
+                {isArabic ? 'إلغاء' : 'Cancel'}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={handleCalibrationSubmit}
+                disabled={!calibrationDistance || parseFloat(calibrationDistance) <= 0}
+              >
+                {isArabic ? 'معايرة' : 'Calibrate'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

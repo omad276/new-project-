@@ -188,3 +188,84 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     totalPages: number;
   };
 }
+
+// Map Types
+export type MapFileType = 'cad' | 'pdf' | 'image';
+export type MapStatus = 'uploading' | 'processing' | 'ready' | 'error';
+export type ScaleUnit = 'm' | 'cm' | 'mm' | 'ft' | 'in';
+
+export interface MapScale {
+  pixelDistance: number;
+  realDistance: number;
+  unit: ScaleUnit;
+  ratio: number;
+}
+
+export interface BlueprintMap {
+  id: string;
+  name: string;
+  description?: string;
+  fileType: MapFileType;
+  originalFileName: string;
+  fileSize: number;
+  mimeType: string;
+  status: MapStatus;
+  processingError?: string;
+  metadata?: {
+    width?: number;
+    height?: number;
+    pages?: number;
+    layers?: string[];
+  };
+  scale?: MapScale;
+  version: number;
+  project: string;
+  uploadedBy: string;
+  downloadUrl: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // Extended fields for UI (populated separately)
+  projectName?: string;
+  projectNameAr?: string;
+}
+
+// Measurement Types
+export interface Point {
+  x: number;
+  y: number;
+  z?: number;
+}
+
+export type MeasurementType = 'area' | 'distance' | 'volume' | 'perimeter' | 'angle';
+export type MeasurementUnit =
+  | 'm'
+  | 'cm'
+  | 'mm'
+  | 'ft'
+  | 'in'
+  | 'sqm'
+  | 'sqft'
+  | 'cbm'
+  | 'cbft'
+  | 'deg'
+  | 'px';
+
+export interface Measurement {
+  id: string;
+  mapId: string;
+  type: 'distance' | 'area' | 'angle';
+  points: Point[];
+  value: number;
+  unit: string;
+  color: string;
+  name: string;
+  notes?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Payload for creating measurements (matches what BlueprintViewer emits)
+export type CreateMeasurementPayload = Omit<
+  Measurement,
+  'id' | 'mapId' | 'createdAt' | 'updatedAt'
+>;

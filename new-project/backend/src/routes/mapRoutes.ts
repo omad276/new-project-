@@ -36,6 +36,9 @@ router.get('/maps/:id/download', optionalAuth, mapController.downloadMap);
 // PATCH /api/maps/:id - Update map metadata
 router.patch('/maps/:id', authenticate, mapController.updateMap);
 
+// PATCH /api/maps/:id/calibrate - Calibrate map scale
+router.patch('/maps/:id/calibrate', authenticate, mapController.calibrateMap);
+
 // DELETE /api/maps/:id - Delete a map
 router.delete('/maps/:id', authenticate, mapController.deleteMap);
 

@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import { Map } from '../models/Map.js';
 import { Project } from '../models/Project.js';
 import { AppError } from '../utils/AppError.js';
-import { PublicMap, IMapDocument, MapFileType } from '../types/index.js';
+import { PublicMap, IMapDocument, MapFileType, ScaleUnit } from '../types/index.js';
 import { getFileTypeFromExtension } from '../middleware/upload.js';
 
 // ============================================
@@ -20,6 +20,12 @@ interface UploadMapInput {
 interface UpdateMapInput {
   name?: string;
   description?: string;
+}
+
+interface CalibrateMapInput {
+  pixelDistance: number;
+  realDistance: number;
+  unit: ScaleUnit;
 }
 
 /**
@@ -217,6 +223,52 @@ export async function deleteMap(
   }
 
   await map.deleteOne();
+}
+
+/**
+ * Calibrate map scale for real-world measurements
+ */
+export async function calibrateMap(
+  mapId: string,
+  userId: string,
+  data: CalibrateMapInput
+): Promise<PublicMap> {
+  const { pixelDistance, realDistance, unit } = data;
+
+  // Validate inputs
+  if (pixelDistance <= 0) {
+    throw AppError.badRequest('Pixel distance must be greater than 0');
+  }
+  if (realDistance <= 0) {
+    throw AppError.badRequest('Real distance must be greater than 0');
+  }
+
+  const map = await Map.findById(mapId);
+  if (!map) {
+    throw AppError.notFound('Map not found');
+  }
+
+  // Check ownership - only owner can calibrate
+  const project = await Project.findById(map.project);
+  if (!project || project.owner.toString() !== userId) {
+    throw AppError.forbidden('Only the project owner can calibrate maps');
+  }
+
+  // Calculate scale ratio: how many real-world units per pixel
+  const ratio = realDistance / pixelDistance;
+
+  // Update map scale
+  map.scale = {
+    pixelDistance,
+    realDistance,
+    unit,
+    ratio,
+  };
+
+  await map.save();
+  await map.populate('uploadedBy', 'id fullName email');
+
+  return map.toPublicJSON();
 }
 
 /**
