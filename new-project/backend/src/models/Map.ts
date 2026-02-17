@@ -65,6 +65,10 @@ const mapSchema = new Schema<IMapDocument>(
       unit: { type: String, enum: ['m', 'cm', 'mm', 'ft', 'in'] as ScaleUnit[] },
       ratio: { type: Number },
     },
+    isCalibrated: {
+      type: Boolean,
+      default: false,
+    },
     version: {
       type: Number,
       default: 1,
@@ -135,6 +139,7 @@ mapSchema.methods.toPublicJSON = function (): PublicMap {
     processingError: this.processingError,
     metadata: this.metadata,
     scale: this.scale,
+    isCalibrated: this.isCalibrated,
     version: this.version,
     uploadedBy: uploadedById,
     downloadUrl: `/api/maps/${this._id}/download`,

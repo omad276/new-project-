@@ -257,13 +257,14 @@ export async function calibrateMap(
   // Calculate scale ratio: how many real-world units per pixel
   const ratio = realDistance / pixelDistance;
 
-  // Update map scale
+  // Update map scale and mark as calibrated
   map.scale = {
     pixelDistance,
     realDistance,
     unit,
     ratio,
   };
+  map.isCalibrated = true;
 
   await map.save();
   await map.populate('uploadedBy', 'id fullName email');

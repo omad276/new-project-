@@ -244,6 +244,7 @@ export interface IMap {
     layers?: string[];
   };
   scale?: MapScale;
+  isCalibrated: boolean;
   version: number;
   uploadedBy: Types.ObjectId;
   createdAt: Date;
@@ -261,6 +262,7 @@ export type PublicMap = Omit<IMap, 'project' | 'uploadedBy' | 'storagePath'> & {
   uploadedBy: string | PublicUser;
   downloadUrl: string;
   scale?: MapScale;
+  isCalibrated: boolean;
 };
 
 // ============================================

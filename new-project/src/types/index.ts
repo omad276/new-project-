@@ -218,6 +218,7 @@ export interface BlueprintMap {
     layers?: string[];
   };
   scale?: MapScale;
+  isCalibrated?: boolean;
   version: number;
   project: string;
   uploadedBy: string;

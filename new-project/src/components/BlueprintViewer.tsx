@@ -56,6 +56,7 @@ interface BlueprintViewerProps {
   editable?: boolean;
   className?: string;
   mapScale?: MapScale;
+  isCalibrated?: boolean;
   onCalibrate?: (data: { pixelDistance: number; realDistance: number; unit: ScaleUnit }) => void;
 }
 
@@ -75,6 +76,7 @@ export function BlueprintViewer({
   editable = false,
   className = '',
   mapScale,
+  isCalibrated = false,
   onCalibrate,
 }: BlueprintViewerProps) {
   const { i18n } = useTranslation();
@@ -114,6 +116,7 @@ export function BlueprintViewer({
   const [showCalibrationModal, setShowCalibrationModal] = useState(false);
   const [calibrationDistance, setCalibrationDistance] = useState('');
   const [calibrationUnit, setCalibrationUnit] = useState<ScaleUnit>('m');
+  const [showCalibrationWarning, setShowCalibrationWarning] = useState(false);
 
   // Colors for measurements
   const measurementColors = ['#FF5722', '#2196F3', '#4CAF50', '#9C27B0', '#FF9800'];
@@ -758,7 +761,7 @@ export function BlueprintViewer({
               size="sm"
               onClick={() => { setActiveTool('calibrate'); setCurrentPoints([]); setCalibrationPoints([]); }}
               title={isArabic ? 'معايرة المقياس' : 'Calibrate Scale'}
-              className={!mapScale ? 'text-amber-600' : ''}
+              className={!isCalibrated ? 'text-amber-600' : 'text-green-600'}
             >
               <Scale className="w-4 h-4" />
             </Button>
@@ -766,8 +769,17 @@ export function BlueprintViewer({
             <Button
               variant={activeTool === 'distance' ? 'primary' : 'ghost'}
               size="sm"
-              onClick={() => { setActiveTool('distance'); setCurrentPoints([]); }}
+              onClick={() => {
+                if (!isCalibrated) {
+                  setShowCalibrationWarning(true);
+                  setTimeout(() => setShowCalibrationWarning(false), 3000);
+                  return;
+                }
+                setActiveTool('distance');
+                setCurrentPoints([]);
+              }}
               title={isArabic ? 'قياس المسافة' : 'Measure Distance'}
+              className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <Ruler className="w-4 h-4" />
             </Button>
@@ -775,8 +787,17 @@ export function BlueprintViewer({
             <Button
               variant={activeTool === 'area' ? 'primary' : 'ghost'}
               size="sm"
-              onClick={() => { setActiveTool('area'); setCurrentPoints([]); }}
+              onClick={() => {
+                if (!isCalibrated) {
+                  setShowCalibrationWarning(true);
+                  setTimeout(() => setShowCalibrationWarning(false), 3000);
+                  return;
+                }
+                setActiveTool('area');
+                setCurrentPoints([]);
+              }}
               title={isArabic ? 'قياس المساحة' : 'Measure Area'}
+              className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <Square className="w-4 h-4" />
             </Button>
@@ -808,7 +829,7 @@ export function BlueprintViewer({
 
       {/* Scale Indicator, Calibration Badge & PDF Badge */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        {mapScale ? (
+        {isCalibrated && mapScale ? (
           <div className="bg-green-500/90 backdrop-blur rounded-lg px-3 py-1 shadow-lg text-sm text-white flex items-center gap-1">
             <Scale className="w-4 h-4" />
             1px = {mapScale.ratio.toFixed(4)}{mapScale.unit}
@@ -968,6 +989,23 @@ export function BlueprintViewer({
           >
             {isArabic ? 'إلغاء' : 'Cancel'}
           </Button>
+        </div>
+      )}
+
+      {/* Calibration Required Warning */}
+      {showCalibrationWarning && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-amber-100 border border-amber-300 backdrop-blur rounded-lg px-4 py-3 shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <Scale className="w-5 h-5 text-amber-600" />
+            <span className="font-medium text-amber-900">
+              {isArabic ? 'يجب معايرة الخريطة أولاً' : 'Calibration Required'}
+            </span>
+          </div>
+          <p className="text-sm text-amber-800 mt-1">
+            {isArabic
+              ? 'استخدم أداة المقياس لتعيين المسافة الحقيقية قبل إجراء القياسات'
+              : 'Use the Scale tool to set real-world distance before measuring'}
+          </p>
         </div>
       )}
 

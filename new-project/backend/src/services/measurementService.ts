@@ -225,6 +225,11 @@ export async function createMeasurement(input: CreateMeasurementInput): Promise<
     throw AppError.notFound('Map not found');
   }
 
+  // Verify map is calibrated before allowing measurements
+  if (!map.isCalibrated) {
+    throw AppError.badRequest('Map must be calibrated before creating measurements');
+  }
+
   // Verify project ownership
   const project = await Project.findById(map.project);
   if (!project || project.owner.toString() !== userId) {

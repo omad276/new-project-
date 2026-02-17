@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, MapPin, Ruler, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, MapPin, Ruler, AlertCircle, FileText, Scale, CheckCircle } from 'lucide-react';
 import { BlueprintViewer } from '@/components/BlueprintViewer';
 import { Button } from '@/components/ui/Button';
 import { mapApi } from '@/services/mapApi';
@@ -182,6 +182,23 @@ export function MapDetailsPage() {
                   <FileText className="w-4 h-4" />
                   {map.fileType.toUpperCase()}
                 </span>
+                {map.isCalibrated ? (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="w-4 h-4" />
+                    {isArabic ? 'معاير' : 'Calibrated'}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-600">
+                    <AlertCircle className="w-4 h-4" />
+                    {isArabic ? 'غير معاير' : 'Not Calibrated'}
+                  </span>
+                )}
+                {map.scale && (
+                  <span className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded">
+                    <Scale className="w-3 h-3" />
+                    1px = {map.scale.ratio.toFixed(4)} {map.scale.unit}
+                  </span>
+                )}
                 {map.originalFileName && (
                   <span className="text-xs text-text-secondary/70 truncate max-w-[200px]">
                     {map.originalFileName}
@@ -243,6 +260,7 @@ export function MapDetailsPage() {
           showMeasurements
           className="w-full h-full"
           mapScale={map.scale}
+          isCalibrated={map.isCalibrated}
           onCalibrate={handleCalibrate}
         />
       </div>
