@@ -4,3 +4,4 @@ export { default as Property } from './Property.js';
 export { Map } from './Map.js';
 export { Measurement } from './Measurement.js';
 export { CostEstimate } from './CostEstimate.js';
+export { Industrial } from './Industrial.js';

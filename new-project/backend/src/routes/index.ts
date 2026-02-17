@@ -5,6 +5,7 @@ import propertyRoutes from './propertyRoutes.js';
 import userRoutes from './userRoutes.js';
 import mapRoutes from './mapRoutes.js';
 import measurementRoutes from './measurementRoutes.js';
+import industrialRoutes from './industrialRoutes.js';
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use('/properties', propertyRoutes);
 router.use('/users', userRoutes);
 router.use(mapRoutes); // Map routes (handles /projects/:id/maps and /maps/:id)
 router.use(measurementRoutes); // Measurement & cost routes
+router.use(industrialRoutes); // Industrial property routes
 
 export default router;

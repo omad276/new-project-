@@ -104,6 +104,12 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ApiErrorResponse {
@@ -456,6 +462,187 @@ export interface PropertyQueryDTO {
   maxSize?: number;
   city?: string;
   sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
+}
+
+// ============================================
+// Industrial Types
+// ============================================
+
+export type FactoryType =
+  | 'manufacturing'
+  | 'assembly'
+  | 'processing'
+  | 'warehouse'
+  | 'distribution'
+  | 'cold_storage'
+  | 'food_processing'
+  | 'pharmaceutical'
+  | 'chemical'
+  | 'textile'
+  | 'automotive'
+  | 'electronics'
+  | 'other';
+
+export type ZoningType =
+  | 'light_industrial'
+  | 'heavy_industrial'
+  | 'mixed_use'
+  | 'free_zone'
+  | 'special_economic';
+
+export type PowerUnit = 'kW' | 'MW' | 'kVA' | 'MVA';
+export type WaterUnit = 'liters' | 'gallons' | 'cubic_meters';
+export type HeightUnit = 'm' | 'ft';
+export type LoadingDockType = 'ground_level' | 'dock_height' | 'both';
+export type CapacityUnit = 'sqm' | 'sqft' | 'pallets' | 'tons';
+
+export interface IIndustrial {
+  property: Types.ObjectId;
+  factoryType: FactoryType;
+  powerCapacity: {
+    value: number;
+    unit: PowerUnit;
+  };
+  waterAccess: {
+    available: boolean;
+    dailyCapacity?: number;
+    unit: WaterUnit;
+  };
+  ceilingHeight?: {
+    value: number;
+    unit: HeightUnit;
+  };
+  loadingDocks: {
+    count: number;
+    type: LoadingDockType;
+  };
+  zoningType: ZoningType;
+  productionLines: {
+    count: number;
+    description?: string;
+  };
+  warehouseCapacity?: {
+    value: number;
+    unit: CapacityUnit;
+  };
+  utilities: {
+    electricity: boolean;
+    gas: boolean;
+    water: boolean;
+    sewage: boolean;
+    internet: boolean;
+    hvac: boolean;
+  };
+  certifications: string[];
+  environmentalCompliance: boolean;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IIndustrialDocument extends IIndustrial, Document {
+  _id: Types.ObjectId;
+  toPublicJSON(): PublicIndustrial;
+}
+
+export type PublicIndustrial = Omit<IIndustrial, 'property' | 'createdBy'> & {
+  id: string;
+  property: string;
+  createdBy: string;
+};
+
+export interface CreateIndustrialDTO {
+  propertyId: string;
+  factoryType: FactoryType;
+  powerCapacity: {
+    value: number;
+    unit?: PowerUnit;
+  };
+  waterAccess?: {
+    available: boolean;
+    dailyCapacity?: number;
+    unit?: WaterUnit;
+  };
+  ceilingHeight?: {
+    value: number;
+    unit?: HeightUnit;
+  };
+  loadingDocks?: {
+    count: number;
+    type?: LoadingDockType;
+  };
+  zoningType: ZoningType;
+  productionLines?: {
+    count: number;
+    description?: string;
+  };
+  warehouseCapacity?: {
+    value: number;
+    unit?: CapacityUnit;
+  };
+  utilities?: {
+    electricity?: boolean;
+    gas?: boolean;
+    water?: boolean;
+    sewage?: boolean;
+    internet?: boolean;
+    hvac?: boolean;
+  };
+  certifications?: string[];
+  environmentalCompliance?: boolean;
+}
+
+export interface UpdateIndustrialDTO {
+  factoryType?: FactoryType;
+  powerCapacity?: {
+    value: number;
+    unit?: PowerUnit;
+  };
+  waterAccess?: {
+    available: boolean;
+    dailyCapacity?: number;
+    unit?: WaterUnit;
+  };
+  ceilingHeight?: {
+    value: number;
+    unit?: HeightUnit;
+  };
+  loadingDocks?: {
+    count: number;
+    type?: LoadingDockType;
+  };
+  zoningType?: ZoningType;
+  productionLines?: {
+    count: number;
+    description?: string;
+  };
+  warehouseCapacity?: {
+    value: number;
+    unit?: CapacityUnit;
+  };
+  utilities?: {
+    electricity?: boolean;
+    gas?: boolean;
+    water?: boolean;
+    sewage?: boolean;
+    internet?: boolean;
+    hvac?: boolean;
+  };
+  certifications?: string[];
+  environmentalCompliance?: boolean;
+}
+
+export interface IndustrialQueryDTO {
+  page?: number;
+  limit?: number;
+  factoryType?: FactoryType;
+  zoningType?: ZoningType;
+  minPowerCapacity?: number;
+  maxPowerCapacity?: number;
+  hasWaterAccess?: boolean;
+  minCeilingHeight?: number;
+  hasLoadingDocks?: boolean;
+  environmentalCompliance?: boolean;
 }
 
 // ============================================
