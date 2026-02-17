@@ -48,6 +48,33 @@ async function startServer(): Promise<void> {
 ║   ├─ POST   /api/auth/change-password                    ║
 ║   └─ DELETE /api/auth/me                                 ║
 ║                                                          ║
+║   Maps:                                                  ║
+║   ├─ POST   /api/projects/:id/maps (upload)              ║
+║   ├─ GET    /api/projects/:id/maps                       ║
+║   ├─ GET    /api/projects/:id/maps/stats                 ║
+║   ├─ GET    /api/maps/:id                                ║
+║   ├─ GET    /api/maps/:id/download                       ║
+║   ├─ PATCH  /api/maps/:id                                ║
+║   └─ DELETE /api/maps/:id                                ║
+║                                                          ║
+║   Measurements:                                          ║
+║   ├─ POST   /api/maps/:id/measurements                   ║
+║   ├─ GET    /api/maps/:id/measurements                   ║
+║   ├─ GET    /api/projects/:id/measurements               ║
+║   ├─ GET    /api/projects/:id/measurements/totals        ║
+║   ├─ GET    /api/measurements/:id                        ║
+║   ├─ PATCH  /api/measurements/:id                        ║
+║   └─ DELETE /api/measurements/:id                        ║
+║                                                          ║
+║   Industrial:                                            ║
+║   ├─ GET    /api/industrial                              ║
+║   ├─ GET    /api/industrial/stats                        ║
+║   ├─ GET    /api/industrial/:id                          ║
+║   ├─ GET    /api/properties/:id/industrial               ║
+║   ├─ POST   /api/industrial                              ║
+║   ├─ PATCH  /api/industrial/:id                          ║
+║   └─ DELETE /api/industrial/:id                          ║
+║                                                          ║
 ║   Health:                                                ║
 ║   └─ GET    /api/health                                  ║
 ║                                                          ║
