@@ -135,9 +135,10 @@ export async function getMapStats(req: AuthRequest, res: Response<ApiResponse>):
 /**
  * PATCH /api/maps/:id/calibrate
  * Calibrate map scale for real-world measurements
+ * Use force=true to delete existing measurements and recalibrate
  */
 export async function calibrateMap(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
-  const { pixelDistance, realDistance, unit } = req.body;
+  const { pixelDistance, realDistance, unit, force } = req.body;
 
   if (typeof pixelDistance !== 'number' || pixelDistance <= 0) {
     throw AppError.badRequest('pixelDistance must be a positive number');
@@ -149,15 +150,21 @@ export async function calibrateMap(req: AuthRequest, res: Response<ApiResponse>)
     throw AppError.badRequest('unit must be one of: m, cm, mm, ft, in');
   }
 
-  const map = await mapService.calibrateMap(req.params.id, req.user!.userId, {
+  const result = await mapService.calibrateMap(req.params.id, req.user!.userId, {
     pixelDistance,
     realDistance,
     unit,
+    force: force === true,
   });
+
+  const message =
+    'deletedMeasurements' in result && result.deletedMeasurements
+      ? `Map recalibrated successfully. ${result.deletedMeasurements} measurement(s) deleted.`
+      : 'Map calibrated successfully';
 
   res.json({
     success: true,
-    message: 'Map calibrated successfully',
-    data: map,
+    message,
+    data: result,
   });
 }

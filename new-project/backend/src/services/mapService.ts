@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import { Map } from '../models/Map.js';
+import { Measurement } from '../models/Measurement.js';
 import { Project } from '../models/Project.js';
 import { AppError } from '../utils/AppError.js';
 import { PublicMap, IMapDocument, MapFileType, ScaleUnit } from '../types/index.js';
@@ -26,6 +27,7 @@ interface CalibrateMapInput {
   pixelDistance: number;
   realDistance: number;
   unit: ScaleUnit;
+  force?: boolean;
 }
 
 /**
@@ -232,8 +234,8 @@ export async function calibrateMap(
   mapId: string,
   userId: string,
   data: CalibrateMapInput
-): Promise<PublicMap> {
-  const { pixelDistance, realDistance, unit } = data;
+): Promise<PublicMap & { deletedMeasurements?: number }> {
+  const { pixelDistance, realDistance, unit, force = false } = data;
 
   // Validate inputs
   if (pixelDistance <= 0) {
@@ -254,6 +256,25 @@ export async function calibrateMap(
     throw AppError.forbidden('Only the project owner can calibrate maps');
   }
 
+  // Check for existing measurements if map is already calibrated
+  let deletedMeasurements = 0;
+  if (map.isCalibrated) {
+    const measurementCount = await Measurement.countDocuments({ map: mapId });
+
+    if (measurementCount > 0) {
+      if (!force) {
+        throw AppError.badRequest(
+          `Cannot recalibrate: ${measurementCount} measurement(s) exist on this map. ` +
+            'Use force=true to delete measurements and recalibrate.'
+        );
+      }
+
+      // Force flag set - delete existing measurements
+      const result = await Measurement.deleteMany({ map: mapId });
+      deletedMeasurements = result.deletedCount;
+    }
+  }
+
   // Calculate scale ratio: how many real-world units per pixel
   const ratio = realDistance / pixelDistance;
 
@@ -269,7 +290,11 @@ export async function calibrateMap(
   await map.save();
   await map.populate('uploadedBy', 'id fullName email');
 
-  return map.toPublicJSON();
+  const result = map.toPublicJSON();
+  if (deletedMeasurements > 0) {
+    return { ...result, deletedMeasurements };
+  }
+  return result;
 }
 
 /**
