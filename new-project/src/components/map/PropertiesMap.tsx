@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react';
-import Map, { MapRef } from 'react-map-gl';
+import Map, { MapRef } from 'react-map-gl/mapbox';
 import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
 import { MapPin } from 'lucide-react';

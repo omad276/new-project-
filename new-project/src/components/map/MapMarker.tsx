@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Marker, Popup } from 'react-map-gl';
+import { Marker, Popup } from 'react-map-gl/mapbox';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Bed, Bath, Maximize } from 'lucide-react';

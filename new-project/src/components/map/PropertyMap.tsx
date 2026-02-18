@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import { useMapbox } from './MapboxProvider';
 import { MapPin } from 'lucide-react';
 
