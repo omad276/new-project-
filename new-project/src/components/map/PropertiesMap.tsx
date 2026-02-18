@@ -1,10 +1,13 @@
-import { useRef, useEffect, useMemo } from 'react';
-import Map, { MapRef } from 'react-map-gl/mapbox';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
+import Map, { MapRef, Source, Layer } from 'react-map-gl/mapbox';
+import type { MapLayerMouseEvent, LayerProps } from 'react-map-gl/mapbox';
+import type { GeoJSONSource } from 'mapbox-gl';
 import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
 import { MapPin } from 'lucide-react';
 import type { Property } from '@/types';
 import type { LngLatBoundsLike } from 'mapbox-gl';
+import type { FeatureCollection, Point, Feature } from 'geojson';
 
 interface PropertiesMapProps {
   properties: Property[];
@@ -37,6 +40,50 @@ function getPropertyCoordinates(property: Property): { lat: number; lng: number 
   return null;
 }
 
+// Cluster circle layer - color and size based on point count
+const clusterLayer: LayerProps = {
+  id: 'clusters',
+  type: 'circle',
+  source: 'properties',
+  filter: ['has', 'point_count'],
+  paint: {
+    'circle-color': ['step', ['get', 'point_count'], '#C5A572', 10, '#1A1A2E', 50, '#0D0D1A'],
+    'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#ffffff',
+  },
+};
+
+// Cluster count label
+const clusterCountLayer: LayerProps = {
+  id: 'cluster-count',
+  type: 'symbol',
+  source: 'properties',
+  filter: ['has', 'point_count'],
+  layout: {
+    'text-field': ['get', 'point_count_abbreviated'],
+    'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+    'text-size': 14,
+  },
+  paint: {
+    'text-color': '#ffffff',
+  },
+};
+
+// Unclustered point layer
+const unclusteredPointLayer: LayerProps = {
+  id: 'unclustered-point',
+  type: 'circle',
+  source: 'properties',
+  filter: ['!', ['has', 'point_count']],
+  paint: {
+    'circle-color': '#C5A572',
+    'circle-radius': 10,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#ffffff',
+  },
+};
+
 export function PropertiesMap({
   properties,
   selectedPropertyId,
@@ -45,6 +92,32 @@ export function PropertiesMap({
 }: PropertiesMapProps) {
   const { accessToken, isReady } = useMapbox();
   const mapRef = useRef<MapRef>(null);
+
+  // Convert properties to GeoJSON for clustering
+  const geojsonData = useMemo((): FeatureCollection<Point> => {
+    return {
+      type: 'FeatureCollection',
+      features: properties
+        .map((property): Feature<Point> | null => {
+          const coords = getPropertyCoordinates(property);
+          if (!coords) return null;
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [coords.lng, coords.lat],
+            },
+            properties: {
+              id: property.id,
+              title: property.title,
+              price: property.price,
+              status: property.status,
+            },
+          };
+        })
+        .filter((f): f is Feature<Point> => f !== null),
+    };
+  }, [properties]);
 
   // Calculate bounds to fit all properties
   const bounds = useMemo((): LngLatBoundsLike | null => {
@@ -95,6 +168,60 @@ export function PropertiesMap({
     }
   }, [bounds]);
 
+  // Handle cluster click - zoom to expand
+  const handleClusterClick = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0];
+    if (!feature || !mapRef.current) return;
+
+    const clusterId = feature.properties?.cluster_id;
+    const source = mapRef.current.getSource('properties') as GeoJSONSource;
+
+    if (!source || !clusterId) return;
+
+    source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err || zoom === undefined || zoom === null) return;
+
+      const geometry = feature.geometry as Point;
+      mapRef.current?.easeTo({
+        center: geometry.coordinates as [number, number],
+        zoom: zoom,
+        duration: 500,
+      });
+    });
+  }, []);
+
+  // Handle unclustered point click - select property
+  const handlePointClick = useCallback(
+    (event: MapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      if (!feature) return;
+
+      const propertyId = feature.properties?.id;
+      if (propertyId) {
+        onPropertySelect?.(propertyId);
+      }
+    },
+    [onPropertySelect]
+  );
+
+  // Handle map click
+  const handleMapClick = useCallback(
+    (event: MapLayerMouseEvent) => {
+      const features = event.features;
+      if (!features || features.length === 0) return;
+
+      const clusterFeature = features.find((f) => f.layer?.id === 'clusters');
+      const pointFeature = features.find((f) => f.layer?.id === 'unclustered-point');
+
+      if (clusterFeature) {
+        handleClusterClick({ ...event, features: [clusterFeature] });
+      } else if (pointFeature) {
+        handlePointClick({ ...event, features: [pointFeature] });
+      }
+    },
+    [handleClusterClick, handlePointClick]
+  );
+
   if (!isReady) {
     return (
       <div
@@ -109,6 +236,11 @@ export function PropertiesMap({
     );
   }
 
+  // Find selected property for showing full marker with popup
+  const selectedProperty = selectedPropertyId
+    ? properties.find((p) => p.id === selectedPropertyId)
+    : null;
+
   return (
     <div className={`rounded-lg overflow-hidden ${className}`}>
       <Map
@@ -121,20 +253,31 @@ export function PropertiesMap({
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle="mapbox://styles/mapbox/streets-v12"
+        interactiveLayerIds={['clusters', 'unclustered-point']}
+        onClick={handleMapClick}
+        cursor="pointer"
       >
-        {properties.map((property) => {
-          const coords = getPropertyCoordinates(property);
-          if (!coords) return null;
+        <Source
+          id="properties"
+          type="geojson"
+          data={geojsonData}
+          cluster={true}
+          clusterMaxZoom={14}
+          clusterRadius={50}
+        >
+          <Layer {...clusterLayer} />
+          <Layer {...clusterCountLayer} />
+          <Layer {...unclusteredPointLayer} />
+        </Source>
 
-          return (
-            <MapMarker
-              key={property.id}
-              property={property}
-              isSelected={property.id === selectedPropertyId}
-              onSelect={onPropertySelect}
-            />
-          );
-        })}
+        {/* Show full MapMarker with popup for selected property */}
+        {selectedProperty && (
+          <MapMarker
+            property={selectedProperty}
+            isSelected={true}
+            onSelect={onPropertySelect}
+          />
+        )}
       </Map>
     </div>
   );
