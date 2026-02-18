@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   GitCompare,
@@ -7,13 +7,26 @@ import {
   Check,
   Minus,
   MapPin,
+  Calculator,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { SearchBar } from '@/components/ui/SearchBar';
+import { Slider } from '@/components/ui/Slider';
 import { cn, formatPrice, formatArea } from '@/lib/utils';
+import {
+  calculateMortgage,
+  calculatePricePerSqm,
+  calculateRentalYield,
+  formatCurrency,
+  formatPercentage,
+} from '@/lib/financial';
 import type { Property, PropertyStatus } from '@/types';
 import type { BadgeProps } from '@/components/ui/Badge';
 
@@ -136,6 +149,16 @@ const mockAvailableProperties: Property[] = [
 
 const MAX_COMPARE = 4;
 
+// Estimated rental rates by property type (annual % of property value)
+const RENTAL_YIELD_ESTIMATES: Record<string, number> = {
+  villa: 0.05,
+  apartment: 0.06,
+  office: 0.08,
+  land: 0.02,
+  warehouse: 0.07,
+  industrial: 0.08,
+};
+
 function ComparePage() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
@@ -143,6 +166,65 @@ function ComparePage() {
   const [compareList, setCompareList] = useState<Property[]>(mockCompareProperties);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFinancialSettings, setShowFinancialSettings] = useState(false);
+  const [showFinancialSection, setShowFinancialSection] = useState(true);
+
+  // Financial calculation settings
+  const [downPaymentPercent, setDownPaymentPercent] = useState(20);
+  const [interestRate, setInterestRate] = useState(5);
+  const [loanTermYears, setLoanTermYears] = useState(25);
+
+  // Calculate financial metrics for each property
+  const financialMetrics = useMemo(() => {
+    return compareList.map((property) => {
+      const downPayment = (property.price * downPaymentPercent) / 100;
+      const loanAmount = property.price - downPayment;
+
+      const mortgage = calculateMortgage({
+        principal: loanAmount,
+        annualRate: interestRate / 100,
+        termYears: loanTermYears,
+      });
+
+      const pricePerSqm = calculatePricePerSqm(property.price, property.area);
+
+      // Estimate annual rental income based on property type
+      const rentalYieldRate = RENTAL_YIELD_ESTIMATES[property.type] || 0.05;
+      const estimatedAnnualRent = property.price * rentalYieldRate;
+      const rentalYield = calculateRentalYield(estimatedAnnualRent, property.price);
+
+      // Cash flow (annual rent - annual mortgage payments)
+      const annualMortgagePayment = mortgage.monthlyPayment * 12;
+      const annualCashFlow = estimatedAnnualRent - annualMortgagePayment;
+
+      // Investment score (simple scoring based on multiple factors)
+      let investmentScore = 50; // Base score
+      if (pricePerSqm < 5000) investmentScore += 15;
+      else if (pricePerSqm < 8000) investmentScore += 10;
+      else if (pricePerSqm < 12000) investmentScore += 5;
+
+      if (rentalYield > 7) investmentScore += 20;
+      else if (rentalYield > 5) investmentScore += 10;
+      else if (rentalYield > 3) investmentScore += 5;
+
+      if (annualCashFlow > 0) investmentScore += 15;
+
+      investmentScore = Math.min(100, Math.max(0, investmentScore));
+
+      return {
+        propertyId: property.id,
+        downPayment,
+        loanAmount,
+        monthlyPayment: mortgage.monthlyPayment,
+        totalInterest: mortgage.totalInterest,
+        pricePerSqm,
+        estimatedAnnualRent,
+        rentalYield,
+        annualCashFlow,
+        investmentScore,
+      };
+    });
+  }, [compareList, downPaymentPercent, interestRate, loanTermYears]);
 
   const statusLabels: Record<PropertyStatus, string> = {
     for_sale: t('property.forSale'),
@@ -233,6 +315,71 @@ function ComparePage() {
           </Button>
         )}
       </div>
+
+      {/* Financial Settings Panel */}
+      {compareList.length > 0 && (
+        <Card>
+          <button
+            onClick={() => setShowFinancialSettings(!showFinancialSettings)}
+            className="w-full flex items-center justify-between p-4 hover:bg-background-tertiary/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Settings2 className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-start">
+                <h3 className="font-semibold">
+                  {isArabic ? 'إعدادات التمويل' : 'Financial Settings'}
+                </h3>
+                <p className="text-sm text-text-muted">
+                  {isArabic
+                    ? `دفعة أولى ${downPaymentPercent}% • فائدة ${interestRate}% • ${loanTermYears} سنة`
+                    : `${downPaymentPercent}% down • ${interestRate}% rate • ${loanTermYears} years`}
+                </p>
+              </div>
+            </div>
+            {showFinancialSettings ? (
+              <ChevronUp className="w-5 h-5 text-text-muted" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-text-muted" />
+            )}
+          </button>
+
+          {showFinancialSettings && (
+            <CardContent className="border-t border-border pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Slider
+                  label={isArabic ? 'الدفعة الأولى' : 'Down Payment'}
+                  min={0}
+                  max={50}
+                  step={5}
+                  value={downPaymentPercent}
+                  onChange={setDownPaymentPercent}
+                  formatValue={(v) => `${v}%`}
+                />
+                <Slider
+                  label={isArabic ? 'معدل الفائدة' : 'Interest Rate'}
+                  min={1}
+                  max={15}
+                  step={0.25}
+                  value={interestRate}
+                  onChange={setInterestRate}
+                  formatValue={(v) => `${v}%`}
+                />
+                <Slider
+                  label={isArabic ? 'مدة القرض' : 'Loan Term'}
+                  min={5}
+                  max={30}
+                  step={5}
+                  value={loanTermYears}
+                  onChange={setLoanTermYears}
+                  formatValue={(v) => `${v} ${isArabic ? 'سنة' : 'years'}`}
+                />
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Comparison Content */}
       {compareList.length === 0 ? (
@@ -331,6 +478,199 @@ function ComparePage() {
                   ))}
                 </tr>
               ))}
+
+              {/* Financial Analysis Section */}
+              <tr>
+                <td colSpan={MAX_COMPARE + 1} className="p-4">
+                  <button
+                    onClick={() => setShowFinancialSection(!showFinancialSection)}
+                    className="flex items-center gap-2 font-semibold hover:text-primary transition-colors"
+                  >
+                    <Calculator className="w-5 h-5 text-primary" />
+                    {isArabic ? 'التحليل المالي' : 'Financial Analysis'}
+                    {showFinancialSection ? (
+                      <ChevronUp className="w-4 h-4 text-text-muted" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-text-muted" />
+                    )}
+                  </button>
+                </td>
+              </tr>
+
+              {showFinancialSection && (
+                <>
+                  {/* Price per sqm */}
+                  <tr className="bg-background-secondary/50">
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'السعر/م²' : 'Price/sqm'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      const minPrice = Math.min(...financialMetrics.map((m) => m.pricePerSqm));
+                      const isLowest = metrics?.pricePerSqm === minPrice;
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          <span className={cn(isLowest && 'text-green-500 font-semibold')}>
+                            {formatCurrency(metrics?.pricePerSqm || 0)}
+                          </span>
+                          {isLowest && (
+                            <Badge variant="success" size="sm" className="ms-2">
+                              {isArabic ? 'الأفضل' : 'Best'}
+                            </Badge>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Monthly Payment */}
+                  <tr>
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'القسط الشهري' : 'Monthly Payment'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      const minPayment = Math.min(...financialMetrics.map((m) => m.monthlyPayment));
+                      const isLowest = metrics?.monthlyPayment === minPayment;
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          <span className={cn(isLowest && 'text-green-500 font-semibold')}>
+                            {formatCurrency(metrics?.monthlyPayment || 0)}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Down Payment */}
+                  <tr className="bg-background-secondary/50">
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'الدفعة الأولى' : 'Down Payment'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          {formatCurrency(metrics?.downPayment || 0)}
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Total Interest */}
+                  <tr>
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'إجمالي الفائدة' : 'Total Interest'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      return (
+                        <td key={property.id} className="p-4 text-center text-red-400">
+                          {formatCurrency(metrics?.totalInterest || 0)}
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Rental Yield */}
+                  <tr className="bg-background-secondary/50">
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'العائد الإيجاري' : 'Rental Yield'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      const maxYield = Math.max(...financialMetrics.map((m) => m.rentalYield));
+                      const isHighest = metrics?.rentalYield === maxYield;
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          <span className={cn(isHighest && 'text-green-500 font-semibold')}>
+                            {formatPercentage(metrics?.rentalYield || 0)}
+                          </span>
+                          {isHighest && (
+                            <Badge variant="success" size="sm" className="ms-2">
+                              {isArabic ? 'الأعلى' : 'Best'}
+                            </Badge>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Annual Cash Flow */}
+                  <tr>
+                    <td className="p-4 font-medium text-text-secondary">
+                      {isArabic ? 'التدفق النقدي السنوي' : 'Annual Cash Flow'}
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      const cashFlow = metrics?.annualCashFlow || 0;
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          <span className={cn(cashFlow >= 0 ? 'text-green-500' : 'text-red-400')}>
+                            {cashFlow >= 0 ? '+' : ''}{formatCurrency(cashFlow)}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+
+                  {/* Investment Score */}
+                  <tr className="bg-background-secondary/50">
+                    <td className="p-4 font-medium text-text-secondary">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        {isArabic ? 'نقاط الاستثمار' : 'Investment Score'}
+                      </div>
+                    </td>
+                    {compareList.map((property) => {
+                      const metrics = financialMetrics.find((m) => m.propertyId === property.id);
+                      const score = metrics?.investmentScore || 0;
+                      const maxScore = Math.max(...financialMetrics.map((m) => m.investmentScore));
+                      const isHighest = score === maxScore;
+                      const scoreColor = score >= 70 ? 'text-green-500' : score >= 50 ? 'text-primary' : 'text-red-400';
+                      return (
+                        <td key={property.id} className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-16 h-2 bg-background-tertiary rounded-full overflow-hidden">
+                              <div
+                                className={cn('h-full rounded-full', score >= 70 ? 'bg-green-500' : score >= 50 ? 'bg-primary' : 'bg-red-400')}
+                                style={{ width: `${score}%` }}
+                              />
+                            </div>
+                            <span className={cn('font-semibold', scoreColor)}>{score}</span>
+                            {isHighest && compareList.length > 1 && (
+                              <Badge variant="primary" size="sm">
+                                {isArabic ? 'الأفضل' : 'Top'}
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    {Array.from({ length: MAX_COMPARE - compareList.length }).map((_, i) => (
+                      <td key={`empty-${i}`} className="p-4 text-center text-text-muted">-</td>
+                    ))}
+                  </tr>
+                </>
+              )}
 
               {/* Features Section */}
               <tr>
