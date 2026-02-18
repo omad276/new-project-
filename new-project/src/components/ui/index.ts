@@ -36,3 +36,6 @@ export { ImageGallery, type ImageGalleryProps } from './ImageGallery';
 
 // Data Display Components
 export { DataTable, type DataTableProps, type Column } from './DataTable';
+
+// Form Components
+export { Slider, type SliderProps } from './Slider';

@@ -12,6 +12,7 @@ import {
   X,
   ChevronLeft,
   LogOut,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -72,6 +73,11 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       href: '/dashboard/compare',
       icon: GitCompare,
       label: t('dashboard.compare'),
+    },
+    {
+      href: '/dashboard/financial-tools',
+      icon: Calculator,
+      label: isArabic ? 'الأدوات المالية' : 'Financial Tools',
     },
     {
       href: '/dashboard/notifications',
