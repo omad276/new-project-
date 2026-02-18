@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Marker, InfoWindow } from '@react-google-maps/api';
+import { Marker, Popup } from 'react-map-gl';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Bed, Bath, Maximize } from 'lucide-react';
@@ -65,7 +65,8 @@ export function MapMarker({ property, isSelected = false, onSelect }: MapMarkerP
 
   const position = getCoordinates();
 
-  const handleClick = () => {
+  const handleClick = (e: { originalEvent: MouseEvent }) => {
+    e.originalEvent.stopPropagation();
     setShowInfo(true);
     onSelect?.(property.id);
   };
@@ -77,22 +78,33 @@ export function MapMarker({ property, isSelected = false, onSelect }: MapMarkerP
   return (
     <>
       <Marker
-        position={position}
+        longitude={position.lng}
+        latitude={position.lat}
+        anchor="bottom"
         onClick={handleClick}
-        icon={{
-          url: `data:image/svg+xml,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 40 50">
-              <path d="M20 0C9 0 0 9 0 20c0 15 20 30 20 30s20-15 20-30C40 9 31 0 20 0z" fill="${isSelected ? '#C5A572' : '#1A1A2E'}"/>
-              <circle cx="20" cy="18" r="8" fill="white"/>
-            </svg>
-          `)}`,
-          scaledSize: new google.maps.Size(40, 50),
-          anchor: new google.maps.Point(20, 50),
-        }}
-      />
+      >
+        <div className="cursor-pointer transition-transform hover:scale-110">
+          <svg width="40" height="50" viewBox="0 0 40 50">
+            <path
+              d="M20 0C9 0 0 9 0 20c0 15 20 30 20 30s20-15 20-30C40 9 31 0 20 0z"
+              fill={isSelected ? '#C5A572' : '#1A1A2E'}
+            />
+            <circle cx="20" cy="18" r="8" fill="white" />
+          </svg>
+        </div>
+      </Marker>
 
       {showInfo && (
-        <InfoWindow position={position} onCloseClick={() => setShowInfo(false)}>
+        <Popup
+          longitude={position.lng}
+          latitude={position.lat}
+          anchor="bottom"
+          onClose={() => setShowInfo(false)}
+          closeButton={true}
+          closeOnClick={false}
+          offset={[0, -50]}
+          maxWidth="300px"
+        >
           <div className="p-2 min-w-[250px] max-w-[300px]">
             {/* Image */}
             {property.images?.[0] && (
@@ -146,7 +158,7 @@ export function MapMarker({ property, isSelected = false, onSelect }: MapMarkerP
               {isArabic ? 'عرض التفاصيل' : 'View Details'}
             </Button>
           </div>
-        </InfoWindow>
+        </Popup>
       )}
     </>
   );

@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
-import { GoogleMap } from '@react-google-maps/api';
-import { useGoogleMaps } from './GoogleMapsProvider';
+import { useRef, useEffect, useMemo } from 'react';
+import Map, { MapRef } from 'react-map-gl';
+import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
 import { MapPin } from 'lucide-react';
 import type { Property } from '@/types';
+import type { LngLatBoundsLike } from 'mapbox-gl';
 
 interface PropertiesMapProps {
   properties: Property[];
@@ -12,29 +13,9 @@ interface PropertiesMapProps {
   className?: string;
 }
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-};
-
 const defaultCenter = {
   lat: 24.7136, // Riyadh
   lng: 46.6753,
-};
-
-const defaultOptions: google.maps.MapOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  streetViewControl: false,
-  mapTypeControl: false,
-  fullscreenControl: true,
-  styles: [
-    {
-      featureType: 'poi',
-      elementType: 'labels',
-      stylers: [{ visibility: 'off' }],
-    },
-  ],
 };
 
 // Helper to get coordinates from property
@@ -62,74 +43,67 @@ export function PropertiesMap({
   onPropertySelect,
   className = '',
 }: PropertiesMapProps) {
-  const { isLoaded, loadError } = useGoogleMaps();
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const { accessToken, isReady } = useMapbox();
+  const mapRef = useRef<MapRef>(null);
 
   // Calculate bounds to fit all properties
-  const bounds = useMemo(() => {
-    if (!isLoaded || properties.length === 0) return null;
+  const bounds = useMemo((): LngLatBoundsLike | null => {
+    if (properties.length === 0) return null;
 
-    const bounds = new google.maps.LatLngBounds();
+    let minLng = Infinity,
+      maxLng = -Infinity;
+    let minLat = Infinity,
+      maxLat = -Infinity;
     let hasValidCoords = false;
 
     properties.forEach((property) => {
       const coords = getPropertyCoordinates(property);
       if (coords) {
-        bounds.extend(coords);
+        minLng = Math.min(minLng, coords.lng);
+        maxLng = Math.max(maxLng, coords.lng);
+        minLat = Math.min(minLat, coords.lat);
+        maxLat = Math.max(maxLat, coords.lat);
         hasValidCoords = true;
       }
     });
 
-    return hasValidCoords ? bounds : null;
-  }, [properties, isLoaded]);
+    if (!hasValidCoords) return null;
 
-  const onLoad = useCallback(
-    (map: google.maps.Map) => {
-      setMap(map);
+    // Add small padding if all points are the same
+    if (minLng === maxLng && minLat === maxLat) {
+      const padding = 0.01;
+      return [
+        [minLng - padding, minLat - padding],
+        [maxLng + padding, maxLat + padding],
+      ];
+    }
 
-      // Fit bounds if we have properties
-      if (bounds) {
-        map.fitBounds(bounds);
+    return [
+      [minLng, minLat],
+      [maxLng, maxLat],
+    ];
+  }, [properties]);
 
-        // Don't zoom in too much for single properties
-        const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
-          const zoom = map.getZoom();
-          if (zoom && zoom > 15) {
-            map.setZoom(15);
-          }
-        });
+  // Fit bounds when properties change
+  useEffect(() => {
+    if (mapRef.current && bounds) {
+      mapRef.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15,
+        duration: 1000,
+      });
+    }
+  }, [bounds]);
 
-        return () => google.maps.event.removeListener(listener);
-      }
-    },
-    [bounds]
-  );
-
-  const onUnmount = useCallback(() => {
-    setMap(null);
-  }, []);
-
-  if (loadError) {
+  if (!isReady) {
     return (
       <div
         className={`flex items-center justify-center bg-background-tertiary rounded-lg ${className}`}
       >
-        <div className="text-center text-error p-4">
+        <div className="text-center text-text-muted p-4">
           <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>Error loading map</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div
-        className={`flex items-center justify-center bg-background-tertiary rounded-lg animate-pulse ${className}`}
-      >
-        <div className="text-center text-text-muted">
-          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50 animate-bounce" />
-          <p>Loading map...</p>
+          <p>Map not configured</p>
+          <p className="text-sm mt-1">Add VITE_MAPBOX_ACCESS_TOKEN to enable maps</p>
         </div>
       </div>
     );
@@ -137,13 +111,16 @@ export function PropertiesMap({
 
   return (
     <div className={`rounded-lg overflow-hidden ${className}`}>
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={defaultCenter}
-        zoom={6}
-        options={defaultOptions}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
+      <Map
+        ref={mapRef}
+        mapboxAccessToken={accessToken}
+        initialViewState={{
+          longitude: defaultCenter.lng,
+          latitude: defaultCenter.lat,
+          zoom: 6,
+        }}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle="mapbox://styles/mapbox/streets-v12"
       >
         {properties.map((property) => {
           const coords = getPropertyCoordinates(property);
@@ -158,7 +135,7 @@ export function PropertiesMap({
             />
           );
         })}
-      </GoogleMap>
+      </Map>
     </div>
   );
 }

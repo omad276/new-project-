@@ -4,7 +4,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ToastProvider } from '@/components/ui/Toast';
-import { GoogleMapsProvider } from '@/components/map';
+import { MapboxProvider } from '@/components/map';
 import {
   HomePage,
   PropertiesPage,
@@ -20,6 +20,7 @@ import {
   ComparePage,
   NotificationsPage,
   SettingsPage,
+  MapDetailsPage,
 } from '@/pages/dashboard';
 
 // Layout wrapper for pages with Navbar and Footer
@@ -46,7 +47,7 @@ function App() {
   useDirection(); // Apply RTL/LTR direction
 
   return (
-    <GoogleMapsProvider>
+    <MapboxProvider>
       <ToastProvider>
         <Routes>
         {/* Auth Routes */}
@@ -150,6 +151,14 @@ function App() {
             </DashboardLayout>
           }
         />
+        <Route
+          path="/dashboard/maps/:mapId"
+          element={
+            <DashboardLayout>
+              <MapDetailsPage />
+            </DashboardLayout>
+          }
+        />
 
         {/* 404 Fallback */}
         <Route
@@ -173,7 +182,7 @@ function App() {
         />
         </Routes>
       </ToastProvider>
-    </GoogleMapsProvider>
+    </MapboxProvider>
   );
 }
 

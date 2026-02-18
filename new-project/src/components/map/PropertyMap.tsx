@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
-import { useGoogleMaps } from './GoogleMapsProvider';
+import { useState } from 'react';
+import Map, { Marker, Popup } from 'react-map-gl';
+import { useMapbox } from './MapboxProvider';
 import { MapPin } from 'lucide-react';
 
 interface PropertyMapProps {
@@ -11,46 +11,17 @@ interface PropertyMapProps {
   className?: string;
 }
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-};
-
-const defaultOptions: google.maps.MapOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  streetViewControl: true,
-  mapTypeControl: false,
-  fullscreenControl: true,
-  styles: [
-    {
-      featureType: 'poi',
-      elementType: 'labels',
-      stylers: [{ visibility: 'off' }],
-    },
-  ],
-};
-
 export function PropertyMap({ lat, lng, address, title, className = '' }: PropertyMapProps) {
-  const { isLoaded, loadError } = useGoogleMaps();
+  const { accessToken, isReady } = useMapbox();
   const [showInfo, setShowInfo] = useState(false);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  const center = { lat, lng };
-
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
-  }, []);
-
-  const onUnmount = useCallback(() => {
-    setMap(null);
-  }, []);
-
-  if (loadError) {
-    // Fallback to static map link when Google Maps fails to load
-    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+  if (!isReady) {
+    // Fallback when Mapbox token is not configured
+    const mapsUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`;
     return (
-      <div className={`flex items-center justify-center bg-background-tertiary rounded-lg ${className}`}>
+      <div
+        className={`flex items-center justify-center bg-background-tertiary rounded-lg ${className}`}
+      >
         <div className="text-center p-8">
           <MapPin className="w-12 h-12 mx-auto mb-3 text-primary" />
           <p className="text-text-secondary mb-2">{address}</p>
@@ -64,19 +35,8 @@ export function PropertyMap({ lat, lng, address, title, className = '' }: Proper
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
           >
             <MapPin className="w-4 h-4" />
-            Open in Google Maps
+            Open in Maps
           </a>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className={`flex items-center justify-center bg-background-tertiary rounded-lg animate-pulse ${className}`}>
-        <div className="text-center text-text-muted">
-          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50 animate-bounce" />
-          <p>Loading map...</p>
         </div>
       </div>
     );
@@ -84,29 +44,53 @@ export function PropertyMap({ lat, lng, address, title, className = '' }: Proper
 
   return (
     <div className={`rounded-lg overflow-hidden ${className}`}>
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={center}
-        zoom={15}
-        options={defaultOptions}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
+      <Map
+        mapboxAccessToken={accessToken}
+        initialViewState={{
+          longitude: lng,
+          latitude: lat,
+          zoom: 15,
+        }}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle="mapbox://styles/mapbox/streets-v12"
       >
         <Marker
-          position={center}
-          onClick={() => setShowInfo(true)}
-          animation={google.maps.Animation.DROP}
-        />
+          longitude={lng}
+          latitude={lat}
+          anchor="bottom"
+          onClick={(e) => {
+            e.originalEvent.stopPropagation();
+            setShowInfo(true);
+          }}
+        >
+          <div className="cursor-pointer animate-bounce-once">
+            <svg width="40" height="50" viewBox="0 0 40 50">
+              <path
+                d="M20 0C9 0 0 9 0 20c0 15 20 30 20 30s20-15 20-30C40 9 31 0 20 0z"
+                fill="#C5A572"
+              />
+              <circle cx="20" cy="18" r="8" fill="white" />
+            </svg>
+          </div>
+        </Marker>
 
         {showInfo && (
-          <InfoWindow position={center} onCloseClick={() => setShowInfo(false)}>
+          <Popup
+            longitude={lng}
+            latitude={lat}
+            anchor="bottom"
+            onClose={() => setShowInfo(false)}
+            closeButton={true}
+            closeOnClick={false}
+            offset={[0, -50]}
+          >
             <div className="p-2 max-w-xs">
               <h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
               <p className="text-sm text-gray-600">{address}</p>
             </div>
-          </InfoWindow>
+          </Popup>
         )}
-      </GoogleMap>
+      </Map>
     </div>
   );
 }
