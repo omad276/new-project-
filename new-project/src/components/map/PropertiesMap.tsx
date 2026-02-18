@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useCallback } from 'react';
-import Map, { MapRef, Source, Layer } from 'react-map-gl/mapbox';
+import Map, { MapRef, Source, Layer, GeolocateControl } from 'react-map-gl/mapbox';
 import type { MapLayerMouseEvent, LayerProps } from 'react-map-gl/mapbox';
 import type { GeoJSONSource } from 'mapbox-gl';
 import { useMapbox } from './MapboxProvider';
@@ -23,6 +23,8 @@ interface PropertiesMapProps {
   onDrawCreate?: (features: Feature[]) => void;
   onDrawUpdate?: (features: Feature[]) => void;
   onDrawDelete?: (features: Feature[]) => void;
+  showGeolocation?: boolean;
+  onGeolocate?: (position: { longitude: number; latitude: number }) => void;
 }
 
 const defaultCenter = {
@@ -162,6 +164,8 @@ export function PropertiesMap({
   onDrawCreate,
   onDrawUpdate,
   onDrawDelete,
+  showGeolocation = false,
+  onGeolocate,
 }: PropertiesMapProps) {
   const { accessToken, isReady } = useMapbox();
   const mapRef = useRef<MapRef>(null);
@@ -373,6 +377,7 @@ export function PropertiesMap({
         )}
 
         {/* Drawing Tools */}
+        {/* Drawing Tools */}
         {enableDrawing && (
           <DrawControl
             position="top-left"
@@ -383,6 +388,23 @@ export function PropertiesMap({
             onCreate={(e: DrawCreateEvent) => onDrawCreate?.(e.features)}
             onUpdate={(e: DrawUpdateEvent) => onDrawUpdate?.(e.features)}
             onDelete={(e: DrawDeleteEvent) => onDrawDelete?.(e.features)}
+          />
+        )}
+
+        {/* Geolocation Control */}
+        {showGeolocation && (
+          <GeolocateControl
+            position="top-right"
+            positionOptions={{ enableHighAccuracy: true }}
+            trackUserLocation={true}
+            showUserHeading={true}
+            showAccuracyCircle={true}
+            onGeolocate={(e) => {
+              onGeolocate?.({
+                longitude: e.coords.longitude,
+                latitude: e.coords.latitude,
+              });
+            }}
           />
         )}
       </Map>
