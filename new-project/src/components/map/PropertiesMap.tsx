@@ -9,11 +9,14 @@ import type { Property } from '@/types';
 import type { LngLatBoundsLike } from 'mapbox-gl';
 import type { FeatureCollection, Point, Feature } from 'geojson';
 
+export type MapViewMode = 'clusters' | 'heatmap';
+
 interface PropertiesMapProps {
   properties: Property[];
   selectedPropertyId?: string;
   onPropertySelect?: (id: string) => void;
   className?: string;
+  viewMode?: MapViewMode;
 }
 
 const defaultCenter = {
@@ -39,6 +42,10 @@ function getPropertyCoordinates(property: Property): { lat: number; lng: number 
   }
   return null;
 }
+
+// ============================================
+// Cluster Layers
+// ============================================
 
 // Cluster circle layer - color and size based on point count
 const clusterLayer: LayerProps = {
@@ -84,16 +91,72 @@ const unclusteredPointLayer: LayerProps = {
   },
 };
 
+// ============================================
+// Heatmap Layers
+// ============================================
+
+// Heatmap layer - shows property density
+const heatmapLayer: LayerProps = {
+  id: 'heatmap',
+  type: 'heatmap',
+  source: 'properties-heatmap',
+  maxzoom: 15,
+  paint: {
+    // Weight of each point
+    'heatmap-weight': 1,
+    // Increase intensity as zoom level increases
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+    // Color gradient from transparent to blue to red
+    'heatmap-color': [
+      'interpolate',
+      ['linear'],
+      ['heatmap-density'],
+      0,
+      'rgba(0,0,0,0)',
+      0.2,
+      'rgba(103,169,207,0.6)',
+      0.4,
+      'rgba(209,229,240,0.7)',
+      0.6,
+      'rgba(253,219,199,0.8)',
+      0.8,
+      'rgba(239,138,98,0.9)',
+      1,
+      'rgba(178,24,43,1)',
+    ],
+    // Radius increases with zoom
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 20],
+    // Fade out at high zoom to reveal points
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 12, 1, 15, 0],
+  },
+};
+
+// Point layer shown at high zoom when heatmap fades
+const heatmapPointLayer: LayerProps = {
+  id: 'heatmap-point',
+  type: 'circle',
+  source: 'properties-heatmap',
+  minzoom: 12,
+  paint: {
+    'circle-radius': 8,
+    'circle-color': '#C5A572',
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#ffffff',
+    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 14, 1],
+  },
+};
+
 export function PropertiesMap({
   properties,
   selectedPropertyId,
   onPropertySelect,
   className = '',
+  viewMode = 'clusters',
 }: PropertiesMapProps) {
   const { accessToken, isReady } = useMapbox();
   const mapRef = useRef<MapRef>(null);
 
-  // Convert properties to GeoJSON for clustering
+  // Convert properties to GeoJSON
   const geojsonData = useMemo((): FeatureCollection<Point> => {
     return {
       type: 'FeatureCollection',
@@ -190,7 +253,7 @@ export function PropertiesMap({
     });
   }, []);
 
-  // Handle unclustered point click - select property
+  // Handle point click - select property
   const handlePointClick = useCallback(
     (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0];
@@ -204,23 +267,36 @@ export function PropertiesMap({
     [onPropertySelect]
   );
 
-  // Handle map click
+  // Handle map click based on view mode
   const handleMapClick = useCallback(
     (event: MapLayerMouseEvent) => {
       const features = event.features;
       if (!features || features.length === 0) return;
 
-      const clusterFeature = features.find((f) => f.layer?.id === 'clusters');
-      const pointFeature = features.find((f) => f.layer?.id === 'unclustered-point');
+      if (viewMode === 'heatmap') {
+        // In heatmap mode, only handle point clicks at high zoom
+        const pointFeature = features.find((f) => f.layer?.id === 'heatmap-point');
+        if (pointFeature?.properties?.id) {
+          onPropertySelect?.(pointFeature.properties.id);
+        }
+      } else {
+        // In cluster mode, handle both cluster and point clicks
+        const clusterFeature = features.find((f) => f.layer?.id === 'clusters');
+        const pointFeature = features.find((f) => f.layer?.id === 'unclustered-point');
 
-      if (clusterFeature) {
-        handleClusterClick({ ...event, features: [clusterFeature] });
-      } else if (pointFeature) {
-        handlePointClick({ ...event, features: [pointFeature] });
+        if (clusterFeature) {
+          handleClusterClick({ ...event, features: [clusterFeature] });
+        } else if (pointFeature) {
+          handlePointClick({ ...event, features: [pointFeature] });
+        }
       }
     },
-    [handleClusterClick, handlePointClick]
+    [viewMode, handleClusterClick, handlePointClick, onPropertySelect]
   );
+
+  // Interactive layer IDs based on view mode
+  const interactiveLayerIds =
+    viewMode === 'heatmap' ? ['heatmap-point'] : ['clusters', 'unclustered-point'];
 
   if (!isReady) {
     return (
@@ -253,30 +329,37 @@ export function PropertiesMap({
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle="mapbox://styles/mapbox/streets-v12"
-        interactiveLayerIds={['clusters', 'unclustered-point']}
+        interactiveLayerIds={interactiveLayerIds}
         onClick={handleMapClick}
         cursor="pointer"
       >
-        <Source
-          id="properties"
-          type="geojson"
-          data={geojsonData}
-          cluster={true}
-          clusterMaxZoom={14}
-          clusterRadius={50}
-        >
-          <Layer {...clusterLayer} />
-          <Layer {...clusterCountLayer} />
-          <Layer {...unclusteredPointLayer} />
-        </Source>
+        {/* Heatmap Mode */}
+        {viewMode === 'heatmap' && (
+          <Source id="properties-heatmap" type="geojson" data={geojsonData}>
+            <Layer {...heatmapLayer} />
+            <Layer {...heatmapPointLayer} />
+          </Source>
+        )}
+
+        {/* Cluster Mode */}
+        {viewMode === 'clusters' && (
+          <Source
+            id="properties"
+            type="geojson"
+            data={geojsonData}
+            cluster={true}
+            clusterMaxZoom={14}
+            clusterRadius={50}
+          >
+            <Layer {...clusterLayer} />
+            <Layer {...clusterCountLayer} />
+            <Layer {...unclusteredPointLayer} />
+          </Source>
+        )}
 
         {/* Show full MapMarker with popup for selected property */}
         {selectedProperty && (
-          <MapMarker
-            property={selectedProperty}
-            isSelected={true}
-            onSelect={onPropertySelect}
-          />
+          <MapMarker property={selectedProperty} isSelected={true} onSelect={onPropertySelect} />
         )}
       </Map>
     </div>
