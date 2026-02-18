@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { MapRef, Source, Layer, GeolocateControl } from 'react-map-gl/mapbox';
 import type { MapLayerMouseEvent, LayerProps } from 'react-map-gl/mapbox';
 import type { GeoJSONSource } from 'mapbox-gl';
@@ -6,12 +6,23 @@ import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
 import { DrawControl } from './DrawControl';
 import type { DrawCreateEvent, DrawUpdateEvent, DrawDeleteEvent } from './DrawControl';
+import { MapStyleControl } from './MapStyleControl';
 import { MapPin } from 'lucide-react';
 import type { Property } from '@/types';
 import type { LngLatBoundsLike } from 'mapbox-gl';
 import type { FeatureCollection, Point, Feature } from 'geojson';
 
 export type MapViewMode = 'clusters' | 'heatmap';
+export type MapStyle = 'streets' | 'dark' | 'light' | 'satellite' | 'satellite-streets' | 'outdoors';
+
+const MAP_STYLES: Record<MapStyle, string> = {
+  streets: 'mapbox://styles/mapbox/streets-v12',
+  dark: 'mapbox://styles/mapbox/dark-v11',
+  light: 'mapbox://styles/mapbox/light-v11',
+  satellite: 'mapbox://styles/mapbox/satellite-v9',
+  'satellite-streets': 'mapbox://styles/mapbox/satellite-streets-v12',
+  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+};
 
 interface PropertiesMapProps {
   properties: Property[];
@@ -25,6 +36,9 @@ interface PropertiesMapProps {
   onDrawDelete?: (features: Feature[]) => void;
   showGeolocation?: boolean;
   onGeolocate?: (position: { longitude: number; latitude: number }) => void;
+  mapStyle?: MapStyle;
+  showStyleControl?: boolean;
+  onStyleChange?: (style: MapStyle) => void;
 }
 
 const defaultCenter = {
@@ -166,8 +180,13 @@ export function PropertiesMap({
   onDrawDelete,
   showGeolocation = false,
   onGeolocate,
+  mapStyle,
+  showStyleControl = false,
+  onStyleChange,
 }: PropertiesMapProps) {
   const { accessToken, isReady } = useMapbox();
+  const [internalStyle, setInternalStyle] = useState<MapStyle>(mapStyle ?? 'streets');
+  const currentStyle = mapStyle ?? internalStyle;
   const mapRef = useRef<MapRef>(null);
 
   // Convert properties to GeoJSON
@@ -332,7 +351,7 @@ export function PropertiesMap({
     : null;
 
   return (
-    <div className={`rounded-lg overflow-hidden ${className}`}>
+    <div className={`relative rounded-lg overflow-hidden ${className}`}>
       <Map
         ref={mapRef}
         mapboxAccessToken={accessToken}
@@ -342,7 +361,7 @@ export function PropertiesMap({
           zoom: 6,
         }}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle={MAP_STYLES[currentStyle]}
         interactiveLayerIds={interactiveLayerIds}
         onClick={handleMapClick}
         cursor="pointer"
@@ -408,6 +427,17 @@ export function PropertiesMap({
           />
         )}
       </Map>
+
+      {/* Map Style Control */}
+      {showStyleControl && (
+        <MapStyleControl
+          value={currentStyle}
+          onChange={(style) => {
+            setInternalStyle(style);
+            onStyleChange?.(style);
+          }}
+        />
+      )}
     </div>
   );
 }
