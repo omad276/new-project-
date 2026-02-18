@@ -4,6 +4,8 @@ import type { MapLayerMouseEvent, LayerProps } from 'react-map-gl/mapbox';
 import type { GeoJSONSource } from 'mapbox-gl';
 import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
+import { DrawControl } from './DrawControl';
+import type { DrawCreateEvent, DrawUpdateEvent, DrawDeleteEvent } from './DrawControl';
 import { MapPin } from 'lucide-react';
 import type { Property } from '@/types';
 import type { LngLatBoundsLike } from 'mapbox-gl';
@@ -17,6 +19,10 @@ interface PropertiesMapProps {
   onPropertySelect?: (id: string) => void;
   className?: string;
   viewMode?: MapViewMode;
+  enableDrawing?: boolean;
+  onDrawCreate?: (features: Feature[]) => void;
+  onDrawUpdate?: (features: Feature[]) => void;
+  onDrawDelete?: (features: Feature[]) => void;
 }
 
 const defaultCenter = {
@@ -152,6 +158,10 @@ export function PropertiesMap({
   onPropertySelect,
   className = '',
   viewMode = 'clusters',
+  enableDrawing = false,
+  onDrawCreate,
+  onDrawUpdate,
+  onDrawDelete,
 }: PropertiesMapProps) {
   const { accessToken, isReady } = useMapbox();
   const mapRef = useRef<MapRef>(null);
@@ -360,6 +370,20 @@ export function PropertiesMap({
         {/* Show full MapMarker with popup for selected property */}
         {selectedProperty && (
           <MapMarker property={selectedProperty} isSelected={true} onSelect={onPropertySelect} />
+        )}
+
+        {/* Drawing Tools */}
+        {enableDrawing && (
+          <DrawControl
+            position="top-left"
+            controls={{
+              polygon: true,
+              trash: true,
+            }}
+            onCreate={(e: DrawCreateEvent) => onDrawCreate?.(e.features)}
+            onUpdate={(e: DrawUpdateEvent) => onDrawUpdate?.(e.features)}
+            onDelete={(e: DrawDeleteEvent) => onDrawDelete?.(e.features)}
+          />
         )}
       </Map>
     </div>
