@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Grid3X3, List, SlidersHorizontal, Map } from 'lucide-react';
+import { Grid3X3, List, SlidersHorizontal, Map, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchBar } from '@/components/ui/SearchBar';
-import { FilterPanel } from '@/components/ui/FilterPanel';
+import { AdvancedFilterPanel } from '@/components/ui/AdvancedFilterPanel';
 import { PropertyCard } from '@/components/ui/PropertyCard';
 import { PropertyCardSkeleton } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { useProperties } from '@/hooks/useProperties';
-import { PropertiesMap } from '@/components/map';
+import { PropertiesMap, type MapViewMode } from '@/components/map';
 import type { PropertyFilters, PropertyType, PropertyStatus, PropertyQueryParams } from '@/types';
+import type { Feature } from 'geojson';
 
 type ViewMode = 'grid' | 'list' | 'map';
 
@@ -25,6 +27,8 @@ function PropertiesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | undefined>();
+  const [isMapSearchActive, setIsMapSearchActive] = useState(false);
+  const [mapViewMode, setMapViewMode] = useState<MapViewMode>('clusters');
 
   // Parse initial params from URL
   const getInitialParams = (): PropertyQueryParams => {
@@ -105,9 +109,34 @@ function PropertiesPage() {
       bedrooms: undefined,
       bathrooms: undefined,
       city: undefined,
+      minPricePerSqm: undefined,
+      maxPricePerSqm: undefined,
+      minRentalYield: undefined,
+      maxRentalYield: undefined,
+      polygon: undefined,
     });
     search('');
+    setIsMapSearchActive(false);
   };
+
+  // Handle polygon draw for map search
+  const handleDrawCreate = useCallback((features: Feature[]) => {
+    if (features.length > 0 && features[0].geometry.type === 'Polygon') {
+      const coordinates = (features[0].geometry as GeoJSON.Polygon).coordinates[0];
+      const polygon = coordinates.map((coord) => [coord[0], coord[1]]);
+      updateFilters({ ...currentFilters, polygon });
+      setIsMapSearchActive(false);
+    }
+  }, [currentFilters, updateFilters]);
+
+  const handleMapSearchToggle = useCallback(() => {
+    if (isMapSearchActive) {
+      setIsMapSearchActive(false);
+    } else {
+      setViewMode('map');
+      setIsMapSearchActive(true);
+    }
+  }, [isMapSearchActive]);
 
   const handlePropertyClick = (id: string) => {
     navigate(`/properties/${id}`);
@@ -139,7 +168,14 @@ function PropertiesPage() {
     bedrooms: params.bedrooms,
     bathrooms: params.bathrooms,
     city: params.city,
+    minPricePerSqm: params.minPricePerSqm,
+    maxPricePerSqm: params.maxPricePerSqm,
+    minRentalYield: params.minRentalYield,
+    maxRentalYield: params.maxRentalYield,
+    polygon: params.polygon,
   };
+
+  const hasPolygonFilter = currentFilters.polygon && currentFilters.polygon.length > 0;
 
   return (
     <div className="min-h-screen py-8">
@@ -159,10 +195,12 @@ function PropertiesPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters (Desktop) */}
           <aside className="hidden lg:block w-80 flex-shrink-0">
-            <FilterPanel
+            <AdvancedFilterPanel
               filters={currentFilters}
               onFilterChange={handleFilterChange}
               onReset={handleResetFilters}
+              onMapSearchToggle={handleMapSearchToggle}
+              isMapSearchActive={isMapSearchActive}
             />
           </aside>
 
@@ -241,11 +279,51 @@ function PropertiesPage() {
             {/* Mobile Filters */}
             {showMobileFilters && (
               <div className="lg:hidden mb-6">
-                <FilterPanel
+                <AdvancedFilterPanel
                   filters={currentFilters}
                   onFilterChange={handleFilterChange}
                   onReset={handleResetFilters}
+                  onMapSearchToggle={handleMapSearchToggle}
+                  isMapSearchActive={isMapSearchActive}
                 />
+              </div>
+            )}
+
+            {/* Map Search Active Banner */}
+            {isMapSearchActive && (
+              <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Pencil className="w-5 h-5 text-primary" />
+                  <div>
+                    <span className="font-medium text-text-primary block">
+                      {isArabic ? 'وضع رسم منطقة البحث' : 'Draw Search Area Mode'}
+                    </span>
+                    <span className="text-sm text-text-secondary">
+                      {isArabic
+                        ? 'ارسم شكلاً على الخريطة لتحديد منطقة البحث'
+                        : 'Draw a polygon on the map to define your search area'}
+                    </span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setIsMapSearchActive(false)}>
+                  {isArabic ? 'إلغاء' : 'Cancel'}
+                </Button>
+              </div>
+            )}
+
+            {/* Polygon Filter Active Badge */}
+            {hasPolygonFilter && !isMapSearchActive && (
+              <div className="mb-4 flex items-center gap-2">
+                <Badge variant="success">
+                  <Map className="w-3 h-3 me-1" />
+                  {isArabic ? 'فلتر الخريطة نشط' : 'Map Filter Active'}
+                </Badge>
+                <button
+                  onClick={() => updateFilters({ ...currentFilters, polygon: undefined })}
+                  className="text-sm text-error hover:underline"
+                >
+                  {isArabic ? 'مسح' : 'Clear'}
+                </button>
               </div>
             )}
 
@@ -264,6 +342,11 @@ function PropertiesPage() {
                   selectedPropertyId={selectedPropertyId}
                   onPropertySelect={setSelectedPropertyId}
                   className="h-full"
+                  viewMode={mapViewMode}
+                  enableDrawing={isMapSearchActive}
+                  onDrawCreate={handleDrawCreate}
+                  showStyleControl
+                  showGeolocation
                 />
               </div>
             ) : isLoading ? (

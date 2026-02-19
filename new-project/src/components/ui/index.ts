@@ -32,6 +32,7 @@ export {
 export { PropertyCard, type PropertyCardProps } from './PropertyCard';
 export { SearchBar, type SearchBarProps } from './SearchBar';
 export { FilterPanel, type FilterPanelProps } from './FilterPanel';
+export { AdvancedFilterPanel, type AdvancedFilterPanelProps } from './AdvancedFilterPanel';
 export { ImageGallery, type ImageGalleryProps } from './ImageGallery';
 
 // Data Display Components

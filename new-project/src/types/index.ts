@@ -164,6 +164,12 @@ export interface PropertyFilters {
   lat?: number;
   radius?: number;
   featured?: boolean;
+  // Advanced filters
+  minPricePerSqm?: number;
+  maxPricePerSqm?: number;
+  minRentalYield?: number;
+  maxRentalYield?: number;
+  polygon?: number[][]; // Array of [lng, lat] coordinates for map search
 }
 
 export interface PropertyQueryParams extends PropertyFilters {
