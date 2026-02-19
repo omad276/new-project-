@@ -1,27 +1,25 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
-import Map, { Source, Layer, GeolocateControl } from 'react-map-gl/mapbox';
-import type { MapLayerMouseEvent, LayerProps, MapRef } from 'react-map-gl';
-import type { GeoJSONSource } from 'mapbox-gl';
+import Map, { Source, Layer, GeolocateControl, NavigationControl } from 'react-map-gl/maplibre';
+import type { MapLayerMouseEvent, LayerProps, MapRef } from 'react-map-gl/maplibre';
+import type { GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl';
 import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';
-import { DrawControl } from './DrawControl';
-import type { DrawCreateEvent, DrawUpdateEvent, DrawDeleteEvent } from './DrawControl';
 import { MapStyleControl } from './MapStyleControl';
 import { MapPin } from 'lucide-react';
 import type { Property } from '@/types';
-import type { LngLatBoundsLike } from 'mapbox-gl';
 import type { FeatureCollection, Point, Feature } from 'geojson';
 
 export type MapViewMode = 'clusters' | 'heatmap';
 export type MapStyle = 'streets' | 'dark' | 'light' | 'satellite' | 'satellite-streets' | 'outdoors';
 
+// Free map styles using OpenStreetMap and other free providers
 const MAP_STYLES: Record<MapStyle, string> = {
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-  light: 'mapbox://styles/mapbox/light-v11',
-  satellite: 'mapbox://styles/mapbox/satellite-v9',
-  'satellite-streets': 'mapbox://styles/mapbox/satellite-streets-v12',
-  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+  streets: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  satellite: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json', // No free satellite, fallback to streets
+  'satellite-streets': 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+  outdoors: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
 };
 
 interface PropertiesMapProps {
@@ -331,20 +329,6 @@ export function PropertiesMap({
   const interactiveLayerIds =
     viewMode === 'heatmap' ? ['heatmap-point'] : ['clusters', 'unclustered-point'];
 
-  if (!isReady) {
-    return (
-      <div
-        className={`flex items-center justify-center bg-background-tertiary rounded-lg ${className}`}
-      >
-        <div className="text-center text-text-muted p-4">
-          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>Map not configured</p>
-          <p className="text-sm mt-1">Add VITE_MAPBOX_ACCESS_TOKEN to enable maps</p>
-        </div>
-      </div>
-    );
-  }
-
   // Find selected property for showing full marker with popup
   const selectedProperty = selectedPropertyId
     ? properties.find((p) => p.id === selectedPropertyId)
@@ -354,7 +338,6 @@ export function PropertiesMap({
     <div className={`relative rounded-lg overflow-hidden ${className}`}>
       <Map
         ref={mapRef}
-        mapboxAccessToken={accessToken}
         initialViewState={{
           longitude: defaultCenter.lng,
           latitude: defaultCenter.lat,
@@ -366,6 +349,8 @@ export function PropertiesMap({
         onClick={handleMapClick}
         cursor="pointer"
       >
+        {/* Navigation Controls */}
+        <NavigationControl position="top-right" />
         {/* Heatmap Mode */}
         {viewMode === 'heatmap' && (
           <Source id="properties-heatmap" type="geojson" data={geojsonData}>
@@ -395,20 +380,7 @@ export function PropertiesMap({
           <MapMarker property={selectedProperty} isSelected={true} onSelect={onPropertySelect} />
         )}
 
-        {/* Drawing Tools */}
-        {/* Drawing Tools */}
-        {enableDrawing && (
-          <DrawControl
-            position="top-left"
-            controls={{
-              polygon: true,
-              trash: true,
-            }}
-            onCreate={(e: DrawCreateEvent) => onDrawCreate?.(e.features)}
-            onUpdate={(e: DrawUpdateEvent) => onDrawUpdate?.(e.features)}
-            onDelete={(e: DrawDeleteEvent) => onDrawDelete?.(e.features)}
-          />
-        )}
+        {/* Drawing Tools - disabled for MapLibre (would need terra-draw integration) */}
 
         {/* Geolocation Control */}
         {showGeolocation && (

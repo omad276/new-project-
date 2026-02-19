@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface MapboxContextValue {
   accessToken: string;
@@ -8,7 +8,7 @@ interface MapboxContextValue {
 
 const MapboxContext = createContext<MapboxContextValue>({
   accessToken: '',
-  isReady: false,
+  isReady: true, // Always ready with MapLibre (no token needed)
 });
 
 interface MapboxProviderProps {
@@ -16,10 +16,9 @@ interface MapboxProviderProps {
 }
 
 export function MapboxProvider({ children }: MapboxProviderProps) {
-  const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
-
+  // MapLibre doesn't need an access token - using free OpenStreetMap tiles
   return (
-    <MapboxContext.Provider value={{ accessToken, isReady: !!accessToken }}>
+    <MapboxContext.Provider value={{ accessToken: '', isReady: true }}>
       {children}
     </MapboxContext.Provider>
   );

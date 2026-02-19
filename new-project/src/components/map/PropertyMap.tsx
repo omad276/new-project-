@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl/mapbox';
-import { useMapbox } from './MapboxProvider';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import { MapPin } from 'lucide-react';
 
 interface PropertyMapProps {
@@ -12,48 +11,20 @@ interface PropertyMapProps {
 }
 
 export function PropertyMap({ lat, lng, address, title, className = '' }: PropertyMapProps) {
-  const { accessToken, isReady } = useMapbox();
   const [showInfo, setShowInfo] = useState(false);
-
-  if (!isReady) {
-    // Fallback when Mapbox token is not configured
-    const mapsUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`;
-    return (
-      <div
-        className={`flex items-center justify-center bg-background-tertiary rounded-lg ${className}`}
-      >
-        <div className="text-center p-8">
-          <MapPin className="w-12 h-12 mx-auto mb-3 text-primary" />
-          <p className="text-text-secondary mb-2">{address}</p>
-          <p className="text-sm text-text-muted mb-4">
-            {lat.toFixed(4)}, {lng.toFixed(4)}
-          </p>
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
-          >
-            <MapPin className="w-4 h-4" />
-            Open in Maps
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`rounded-lg overflow-hidden ${className}`}>
       <Map
-        mapboxAccessToken={accessToken}
         initialViewState={{
           longitude: lng,
           latitude: lat,
           zoom: 15,
         }}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
       >
+        <NavigationControl position="top-right" />
         <Marker
           longitude={lng}
           latitude={lat}
