@@ -13,6 +13,7 @@ import {
   Calendar,
   Check,
   ArrowLeft,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -23,10 +24,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { PropertyMap } from '@/components/map';
+import { PropertyReportModal } from '@/components/reports';
 import { cn, formatPrice, formatArea } from '@/lib/utils';
 import { api } from '@/lib/api';
 import type { PropertyStatus } from '@/types';
 import type { BadgeProps } from '@/components/ui/Badge';
+import type { PropertyReportData } from '@/lib/reportGenerator';
 
 // Property type from API
 interface PropertyData {
@@ -83,6 +86,7 @@ function PropertyDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -259,6 +263,9 @@ function PropertyDetailsPage() {
                   <Button variant="outline" onClick={handleShare}>
                     <Share2 className="w-5 h-5" />
                   </Button>
+                  <Button variant="outline" onClick={() => setShowReportModal(true)}>
+                    <FileText className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
 
@@ -423,6 +430,33 @@ function PropertyDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Property Report Modal */}
+      <PropertyReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        property={{
+          title: title,
+          type: property.type,
+          status: property.status,
+          price: property.price,
+          currency: property.currency,
+          area: property.area,
+          bedrooms: property.bedrooms,
+          bathrooms: property.bathrooms,
+          address: property.location.address || '',
+          city: property.location.city || '',
+          country: property.location.country || 'Saudi Arabia',
+          description: description,
+          features: features,
+          images: images,
+          listedDate: new Date(property.createdAt),
+          agentName: agentName,
+          agentPhone: agent.phone,
+          agentEmail: agent.email,
+        }}
+        isArabic={isArabic}
+      />
 
       {/* Contact Modal */}
       <Modal
