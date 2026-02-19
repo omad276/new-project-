@@ -22,6 +22,7 @@ import {
   SettingsPage,
   MapDetailsPage,
   FinancialToolsPage,
+  MessagesPage,
 } from '@/pages/dashboard';
 
 // Layout wrapper for pages with Navbar and Footer
@@ -165,6 +166,14 @@ function App() {
           element={
             <DashboardLayout>
               <FinancialToolsPage />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/dashboard/messages"
+          element={
+            <DashboardLayout>
+              <MessagesPage />
             </DashboardLayout>
           }
         />

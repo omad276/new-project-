@@ -6,3 +6,4 @@ export { NotificationsPage } from './NotificationsPage';
 export { SettingsPage } from './SettingsPage';
 export { MapDetailsPage } from './MapDetailsPage';
 export { FinancialToolsPage } from './FinancialToolsPage';
+export { MessagesPage } from './MessagesPage';

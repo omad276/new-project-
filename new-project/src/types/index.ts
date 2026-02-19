@@ -276,3 +276,46 @@ export type CreateMeasurementPayload = Omit<
   Measurement,
   'id' | 'mapId' | 'createdAt' | 'updatedAt'
 >;
+
+// Messaging Types
+export type MessageType = 'text' | 'image' | 'property' | 'system';
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  type: MessageType;
+  content: string;
+  propertyId?: string; // For property-related messages
+  propertyTitle?: string;
+  propertyImage?: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface Conversation {
+  id: string;
+  participants: {
+    id: string;
+    name: string;
+    avatar?: string;
+    role: UserRole;
+  }[];
+  propertyId?: string;
+  propertyTitle?: string;
+  propertyImage?: string;
+  lastMessage?: Message;
+  unreadCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SendMessagePayload {
+  conversationId?: string;
+  recipientId: string;
+  propertyId?: string;
+  type: MessageType;
+  content: string;
+}

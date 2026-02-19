@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   LogOut,
   Calculator,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -78,6 +79,12 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       href: '/dashboard/financial-tools',
       icon: Calculator,
       label: isArabic ? 'الأدوات المالية' : 'Financial Tools',
+    },
+    {
+      href: '/dashboard/messages',
+      icon: MessageSquare,
+      label: isArabic ? 'الرسائل' : 'Messages',
+      badge: 2,
     },
     {
       href: '/dashboard/notifications',
