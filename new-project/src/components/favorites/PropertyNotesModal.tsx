@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, StickyNote, Save } from 'lucide-react';
-import { Property } from '@/types';
+import type { Property } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/financial';
 

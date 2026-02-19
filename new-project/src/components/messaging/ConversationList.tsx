@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Plus, MessageSquare } from 'lucide-react';
-import { Conversation } from '@/types';
+import type { Conversation } from '@/types';
 import { ConversationItem } from './ConversationItem';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';

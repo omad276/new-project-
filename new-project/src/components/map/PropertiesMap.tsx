@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
-import Map, { MapRef, Source, Layer, GeolocateControl } from 'react-map-gl/mapbox';
-import type { MapLayerMouseEvent, LayerProps } from 'react-map-gl/mapbox';
+import Map, { Source, Layer, GeolocateControl } from 'react-map-gl/mapbox';
+import type { MapLayerMouseEvent, LayerProps, MapRef } from 'react-map-gl';
 import type { GeoJSONSource } from 'mapbox-gl';
 import { useMapbox } from './MapboxProvider';
 import { MapMarker } from './MapMarker';

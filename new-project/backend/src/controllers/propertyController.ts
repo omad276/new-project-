@@ -18,11 +18,12 @@ import { AuthRequest, ApiResponse } from '../types/index.js';
  */
 export async function createProperty(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
   const data = validate(createPropertySchema, req.body);
-  const property = await propertyService.createProperty(data);
+  const property = await propertyService.createProperty(data, req.user!.id);
 
   res.status(201).json({
     success: true,
     message: 'Property created successfully',
+    messageAr: 'تم إنشاء العقار بنجاح',
     data: property,
   });
 }
@@ -38,8 +39,27 @@ export async function getProperties(req: AuthRequest, res: Response): Promise<vo
   res.json({
     success: true,
     message: 'Properties retrieved',
+    messageAr: 'تم استرجاع العقارات',
     data: result.properties,
     pagination: result.pagination,
+  });
+}
+
+/**
+ * GET /api/properties/featured
+ * Get featured properties
+ */
+export async function getFeaturedProperties(
+  _req: AuthRequest,
+  res: Response<ApiResponse>
+): Promise<void> {
+  const properties = await propertyService.getFeaturedProperties(6);
+
+  res.json({
+    success: true,
+    message: 'Featured properties retrieved',
+    messageAr: 'تم استرجاع العقارات المميزة',
+    data: properties,
   });
 }
 
@@ -53,7 +73,23 @@ export async function getStats(_req: AuthRequest, res: Response<ApiResponse>): P
   res.json({
     success: true,
     message: 'Statistics retrieved',
+    messageAr: 'تم استرجاع الإحصائيات',
     data: stats,
+  });
+}
+
+/**
+ * GET /api/properties/my
+ * Get current user's properties
+ */
+export async function getMyProperties(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
+  const properties = await propertyService.getPropertiesByOwner(req.user!.id);
+
+  res.json({
+    success: true,
+    message: 'Your properties retrieved',
+    messageAr: 'تم استرجاع عقاراتك',
+    data: properties,
   });
 }
 
@@ -67,6 +103,7 @@ export async function getProperty(req: AuthRequest, res: Response<ApiResponse>):
   res.json({
     success: true,
     message: 'Property retrieved',
+    messageAr: 'تم استرجاع العقار',
     data: property,
   });
 }
@@ -77,11 +114,13 @@ export async function getProperty(req: AuthRequest, res: Response<ApiResponse>):
  */
 export async function updateProperty(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
   const data = validate(updatePropertySchema, req.body);
-  const property = await propertyService.updateProperty(req.params.id, data);
+  const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+  const property = await propertyService.updateProperty(req.params.id, data, userId);
 
   res.json({
     success: true,
     message: 'Property updated successfully',
+    messageAr: 'تم تحديث العقار بنجاح',
     data: property,
   });
 }
@@ -91,10 +130,12 @@ export async function updateProperty(req: AuthRequest, res: Response<ApiResponse
  * Delete a property
  */
 export async function deleteProperty(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
-  await propertyService.deleteProperty(req.params.id);
+  const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+  await propertyService.deleteProperty(req.params.id, userId);
 
   res.json({
     success: true,
     message: 'Property deleted successfully',
+    messageAr: 'تم حذف العقار بنجاح',
   });
 }

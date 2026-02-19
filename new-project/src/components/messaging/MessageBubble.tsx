@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { Check, CheckCheck, Building2 } from 'lucide-react';
-import { Message } from '@/types';
+import type { Message } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface MessageBubbleProps {

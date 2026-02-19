@@ -11,6 +11,9 @@ const router = Router();
 // GET /api/properties - Search/list properties (public)
 router.get('/', optionalAuth, propertyController.getProperties);
 
+// GET /api/properties/featured - Get featured properties (public)
+router.get('/featured', optionalAuth, propertyController.getFeaturedProperties);
+
 // GET /api/properties/stats - Get statistics (public)
 router.get('/stats', optionalAuth, propertyController.getStats);
 
@@ -20,6 +23,9 @@ router.get('/:id', optionalAuth, propertyController.getProperty);
 // ============================================
 // Protected Routes (require authentication)
 // ============================================
+
+// GET /api/properties/my - Get current user's properties
+router.get('/my', authenticate, propertyController.getMyProperties);
 
 // POST /api/properties - Create a new property
 router.post('/', authenticate, propertyController.createProperty);

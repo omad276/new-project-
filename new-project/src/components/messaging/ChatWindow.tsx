@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Image, MoreVertical, Phone, Video, ArrowLeft, Building2 } from 'lucide-react';
-import { Conversation, Message } from '@/types';
+import type { Conversation, Message } from '@/types';
 import { MessageBubble } from './MessageBubble';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';

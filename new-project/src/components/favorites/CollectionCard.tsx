@@ -1,5 +1,5 @@
 import { Folder, MoreVertical, Share2, Edit2, Trash2, Lock, Globe } from 'lucide-react';
-import { Collection } from '@/types';
+import type { Collection } from '@/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 

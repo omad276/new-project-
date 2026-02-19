@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Folder } from 'lucide-react';
-import { Collection } from '@/types';
+import type { Collection } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';

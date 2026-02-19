@@ -48,35 +48,35 @@ async function startServer(): Promise<void> {
 ║   ├─ POST   /api/auth/change-password                    ║
 ║   └─ DELETE /api/auth/me                                 ║
 ║                                                          ║
-║   Maps:                                                  ║
+║   Properties:                                            ║
+║   ├─ GET    /api/properties                              ║
+║   ├─ GET    /api/properties/featured                     ║
+║   ├─ GET    /api/properties/stats                        ║
+║   ├─ GET    /api/properties/my                           ║
+║   ├─ GET    /api/properties/:id                          ║
+║   ├─ POST   /api/properties                              ║
+║   ├─ PATCH  /api/properties/:id                          ║
+║   └─ DELETE /api/properties/:id                          ║
+║                                                          ║
+║   Favorites:                                             ║
+║   ├─ GET    /api/favorites                               ║
+║   ├─ POST   /api/favorites                               ║
+║   ├─ DELETE /api/favorites/:propertyId                   ║
+║   ├─ PATCH  /api/favorites/:propertyId/notes             ║
+║   ├─ PATCH  /api/favorites/:propertyId/collection        ║
+║   ├─ GET    /api/favorites/check/:propertyId             ║
+║   ├─ POST   /api/favorites/collections                   ║
+║   ├─ PATCH  /api/favorites/collections/:id               ║
+║   ├─ DELETE /api/favorites/collections/:id               ║
+║   └─ GET    /api/favorites/shared/:shareLink             ║
+║                                                          ║
+║   Maps & Measurements:                                   ║
 ║   ├─ POST   /api/projects/:id/maps (upload)              ║
-║   ├─ GET    /api/projects/:id/maps                       ║
-║   ├─ GET    /api/projects/:id/maps/stats                 ║
 ║   ├─ GET    /api/maps/:id                                ║
-║   ├─ GET    /api/maps/:id/download                       ║
-║   ├─ PATCH  /api/maps/:id                                ║
-║   └─ DELETE /api/maps/:id                                ║
-║                                                          ║
-║   Measurements:                                          ║
 ║   ├─ POST   /api/maps/:id/measurements                   ║
-║   ├─ GET    /api/maps/:id/measurements                   ║
-║   ├─ GET    /api/projects/:id/measurements               ║
-║   ├─ GET    /api/projects/:id/measurements/totals        ║
-║   ├─ GET    /api/measurements/:id                        ║
-║   ├─ PATCH  /api/measurements/:id                        ║
-║   └─ DELETE /api/measurements/:id                        ║
+║   └─ GET    /api/maps/:id/measurements                   ║
 ║                                                          ║
-║   Industrial:                                            ║
-║   ├─ GET    /api/industrial                              ║
-║   ├─ GET    /api/industrial/stats                        ║
-║   ├─ GET    /api/industrial/:id                          ║
-║   ├─ GET    /api/properties/:id/industrial               ║
-║   ├─ POST   /api/industrial                              ║
-║   ├─ PATCH  /api/industrial/:id                          ║
-║   └─ DELETE /api/industrial/:id                          ║
-║                                                          ║
-║   Health:                                                ║
-║   └─ GET    /api/health                                  ║
+║   Health: GET /api/health                                ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
       `);

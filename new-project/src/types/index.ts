@@ -344,3 +344,6 @@ export interface Collection {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Re-export for compatibility
+export type { Collection as FavoriteCollection };

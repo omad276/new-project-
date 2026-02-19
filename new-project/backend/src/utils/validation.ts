@@ -179,70 +179,104 @@ export type ProjectQueryInput = z.output<typeof projectQuerySchema>;
 // Property Validation Schemas
 // ============================================
 
-export const propertyTypeSchema = z.enum(['sale', 'rent', 'investment', 'partnership']);
+export const propertyTypeSchema = z.enum([
+  'apartment',
+  'villa',
+  'office',
+  'land',
+  'building',
+  'warehouse',
+  'factory',
+  'industrial_land',
+]);
 
-export const propertyCategorySchema = z.enum(['residential', 'commercial', 'industrial', 'land']);
+export const propertyCategorySchema = z.enum(['residential', 'commercial', 'industrial']);
 
-export const propertyStatusSchema = z.enum(['available', 'sold', 'rented']);
+export const propertyStatusSchema = z.enum([
+  'for_sale',
+  'for_rent',
+  'off_plan',
+  'investment',
+  'sold',
+  'rented',
+]);
 
-export const sizeUnitSchema = z.enum(['sqm', 'sqft']);
-
-const locationSchema = z
-  .object({
-    country: z.string().optional(),
-    city: z.string().optional(),
-    address: z.string().optional(),
-    coordinates: z
-      .object({
-        lat: z.number().optional(),
-        lng: z.number().optional(),
-      })
-      .optional(),
-  })
-  .optional();
+const locationSchema = z.object({
+  address: z.string().min(1, 'Address is required'),
+  addressAr: z.string().min(1, 'Arabic address is required'),
+  city: z.string().min(1, 'City is required'),
+  cityAr: z.string().min(1, 'Arabic city is required'),
+  country: z.string().default('Saudi Arabia'),
+  countryAr: z.string().default('السعودية'),
+  coordinates: z
+    .object({
+      type: z.string().default('Point'),
+      coordinates: z.tuple([z.number(), z.number()]).default([0, 0]),
+    })
+    .optional(),
+});
 
 export const createPropertySchema = z.object({
   title: z.string().min(1, 'Title is required').max(200).trim(),
-  description: z.string().max(5000).trim().optional(),
+  titleAr: z.string().min(1, 'Arabic title is required').max(200).trim(),
+  description: z.string().min(1, 'Description is required').max(5000).trim(),
+  descriptionAr: z.string().min(1, 'Arabic description is required').max(5000).trim(),
   type: propertyTypeSchema,
   category: propertyCategorySchema,
+  status: propertyStatusSchema.default('for_sale'),
   price: z.number().positive('Price must be positive'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('SAR'),
+  area: z.number().positive('Area must be positive'),
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
   location: locationSchema,
-  size: z.number().positive('Size must be positive').optional(),
-  sizeUnit: sizeUnitSchema.default('sqm'),
+  images: z.array(z.string().url()).default([]),
+  features: z.array(z.string()).default([]),
+  featuresAr: z.array(z.string()).default([]),
+  isFeatured: z.boolean().default(false),
 });
 
 export const updatePropertySchema = z.object({
   title: z.string().min(1).max(200).trim().optional(),
+  titleAr: z.string().min(1).max(200).trim().optional(),
   description: z.string().max(5000).trim().optional(),
+  descriptionAr: z.string().max(5000).trim().optional(),
   type: propertyTypeSchema.optional(),
   category: propertyCategorySchema.optional(),
+  status: propertyStatusSchema.optional(),
   price: z.number().positive().optional(),
   currency: z.string().optional(),
-  location: locationSchema,
-  size: z.number().positive().optional(),
-  sizeUnit: sizeUnitSchema.optional(),
-  status: propertyStatusSchema.optional(),
+  area: z.number().positive().optional(),
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
+  location: locationSchema.partial().optional(),
+  images: z.array(z.string().url()).optional(),
+  features: z.array(z.string()).optional(),
+  featuresAr: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 export const propertyQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(12),
   q: z.string().optional(),
-  type: z
-    .union([propertyTypeSchema, z.array(propertyTypeSchema)])
-    .optional()
-    .transform((v) => (v ? (Array.isArray(v) ? v : [v]) : undefined)),
+  type: z.union([propertyTypeSchema, z.array(propertyTypeSchema)]).optional(),
   category: propertyCategorySchema.optional(),
-  status: propertyStatusSchema.optional(),
+  status: z.union([propertyStatusSchema, z.array(propertyStatusSchema)]).optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
-  minSize: z.coerce.number().min(0).optional(),
-  maxSize: z.coerce.number().min(0).optional(),
+  minArea: z.coerce.number().min(0).optional(),
+  maxArea: z.coerce.number().min(0).optional(),
+  bedrooms: z.coerce.number().int().min(0).optional(),
+  bathrooms: z.coerce.number().int().min(0).optional(),
   city: z.string().optional(),
+  featured: z.coerce.boolean().optional(),
+  lng: z.coerce.number().optional(),
+  lat: z.coerce.number().optional(),
+  radius: z.coerce.number().min(0).optional(),
   sort: z
-    .enum(['newest', 'oldest', 'price_asc', 'price_desc', 'size_asc', 'size_desc'])
+    .enum(['newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'])
     .default('newest'),
 });
 

@@ -6,16 +6,41 @@ const propertySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    description: String,
+    titleAr: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    descriptionAr: {
+      type: String,
+      required: true,
+    },
     type: {
       type: String,
-      enum: ['sale', 'rent', 'investment', 'partnership'],
+      enum: [
+        'apartment',
+        'villa',
+        'office',
+        'land',
+        'building',
+        'warehouse',
+        'factory',
+        'industrial_land',
+      ],
       required: true,
     },
     category: {
       type: String,
-      enum: ['residential', 'commercial', 'industrial', 'land'],
+      enum: ['residential', 'commercial', 'industrial'],
       required: true,
+    },
+    status: {
+      type: String,
+      enum: ['for_sale', 'for_rent', 'off_plan', 'investment', 'sold', 'rented'],
+      default: 'for_sale',
     },
     price: {
       type: Number,
@@ -23,30 +48,72 @@ const propertySchema = new mongoose.Schema(
     },
     currency: {
       type: String,
-      default: 'USD',
+      default: 'SAR',
     },
+    area: {
+      type: Number,
+      required: true,
+    },
+    bedrooms: Number,
+    bathrooms: Number,
     location: {
-      country: String,
-      city: String,
-      address: String,
+      address: { type: String, required: true },
+      addressAr: { type: String, required: true },
+      city: { type: String, required: true },
+      cityAr: { type: String, required: true },
+      country: { type: String, default: 'Saudi Arabia' },
+      countryAr: { type: String, default: 'السعودية' },
       coordinates: {
-        lat: Number,
-        lng: Number,
+        type: { type: String, default: 'Point' },
+        coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
       },
     },
-    size: Number,
-    sizeUnit: {
-      type: String,
-      enum: ['sqm', 'sqft'],
-      default: 'sqm',
+    images: {
+      type: [String],
+      default: [],
     },
-    status: {
-      type: String,
-      enum: ['available', 'sold', 'rented'],
-      default: 'available',
+    features: {
+      type: [String],
+      default: [],
+    },
+    featuresAr: {
+      type: [String],
+      default: [],
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    agent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
 );
+
+// Index for geo queries
+propertySchema.index({ 'location.coordinates': '2dsphere' });
+
+// Index for search
+propertySchema.index({
+  title: 'text',
+  titleAr: 'text',
+  description: 'text',
+  descriptionAr: 'text',
+});
 
 export default mongoose.model('Property', propertySchema);

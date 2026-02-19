@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Link2, Copy, Check, Globe, Lock, Mail, MessageSquare } from 'lucide-react';
-import { Collection } from '@/types';
+import type { Collection } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';

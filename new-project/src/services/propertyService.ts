@@ -4,9 +4,9 @@ import type {
   PropertyQueryParams,
   ApiResponse,
   PaginatedResponse,
-  PropertyLocation,
   PropertyType,
   PropertyStatus,
+  PropertyCategory,
 } from '@/types';
 
 // ============================================
@@ -19,50 +19,18 @@ export interface CreatePropertyData {
   description: string;
   descriptionAr: string;
   type: PropertyType;
+  category: PropertyCategory;
   status: PropertyStatus;
   price: number;
   currency?: string;
   area: number;
   bedrooms?: number;
   bathrooms?: number;
-  location: PropertyLocation;
-  images?: string[];
-  features?: string[];
-  featuresAr?: string[];
-}
-
-export interface PropertyStats {
-  totalProperties: number;
-  activeListings: number;
-  soldProperties: number;
-  rentedProperties: number;
-  totalViews: number;
-  byType: Record<string, number>;
-  byStatus: Record<string, number>;
-}
-
-// ============================================
-// Helper to transform API property to frontend Property
-// ============================================
-
-interface ApiProperty {
-  _id: string;
-  title: string;
-  titleAr?: string;
-  description?: string;
-  descriptionAr?: string;
-  type: string;
-  status: string;
-  price: number;
-  currency: string;
-  area: number;
-  bedrooms?: number;
-  bathrooms?: number;
   location: {
-    address?: string;
-    addressAr?: string;
-    city?: string;
-    cityAr?: string;
+    address: string;
+    addressAr: string;
+    city: string;
+    cityAr: string;
     country?: string;
     countryAr?: string;
     coordinates?: {
@@ -70,16 +38,67 @@ interface ApiProperty {
       coordinates: [number, number];
     };
   };
-  images: string[];
+  images?: string[];
   features?: string[];
   featuresAr?: string[];
-  owner?: string;
-  isActive?: boolean;
   isFeatured?: boolean;
-  viewCount?: number;
+}
+
+export interface PropertyStats {
+  totalProperties: number;
+  forSale: number;
+  forRent: number;
+  featured: number;
+  byType: Record<string, number>;
+  byCategory: Record<string, number>;
+  byCity: Record<string, number>;
+}
+
+// ============================================
+// API Property type (what backend returns)
+// ============================================
+
+interface ApiProperty {
+  _id: string;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  type: string;
+  category: string;
+  status: string;
+  price: number;
+  currency: string;
+  area: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  location: {
+    address: string;
+    addressAr: string;
+    city: string;
+    cityAr: string;
+    country: string;
+    countryAr: string;
+    coordinates?: {
+      type: string;
+      coordinates: [number, number];
+    };
+  };
+  images: string[];
+  features: string[];
+  featuresAr: string[];
+  owner: string | { _id: string; fullName: string; fullNameAr?: string; avatar?: string };
+  agent?: string | { _id: string; fullName: string; fullNameAr?: string; avatar?: string };
+  isActive: boolean;
+  isFeatured: boolean;
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
 }
+
+// ============================================
+// Transform API property to frontend Property
+// ============================================
 
 function transformProperty(apiProp: ApiProperty): Property {
   return {
@@ -89,6 +108,7 @@ function transformProperty(apiProp: ApiProperty): Property {
     description: apiProp.description,
     descriptionAr: apiProp.descriptionAr,
     type: apiProp.type as PropertyType,
+    category: apiProp.category as PropertyCategory,
     status: apiProp.status as PropertyStatus,
     price: apiProp.price,
     currency: apiProp.currency,
@@ -96,20 +116,26 @@ function transformProperty(apiProp: ApiProperty): Property {
     bedrooms: apiProp.bedrooms,
     bathrooms: apiProp.bathrooms,
     location: {
-      address: apiProp.location.address || '',
-      addressAr: apiProp.location.addressAr || '',
-      city: apiProp.location.city || '',
-      cityAr: apiProp.location.cityAr || '',
-      country: apiProp.location.country || '',
-      countryAr: apiProp.location.countryAr || '',
-      latitude: apiProp.location.coordinates?.coordinates[1] || 0,
-      longitude: apiProp.location.coordinates?.coordinates[0] || 0,
+      address: apiProp.location.address,
+      addressAr: apiProp.location.addressAr,
+      city: apiProp.location.city,
+      cityAr: apiProp.location.cityAr,
+      country: apiProp.location.country,
+      countryAr: apiProp.location.countryAr,
+      coordinates: apiProp.location.coordinates || { type: 'Point', coordinates: [0, 0] },
     },
-    images: apiProp.images.map((img) =>
-      img.startsWith('http') ? img : `http://localhost:3002/${img}`
-    ),
+    images: apiProp.images,
     features: apiProp.features || [],
-    ownerId: apiProp.owner || '',
+    featuresAr: apiProp.featuresAr || [],
+    owner: typeof apiProp.owner === 'string' ? apiProp.owner : apiProp.owner._id,
+    agent: apiProp.agent
+      ? typeof apiProp.agent === 'string'
+        ? apiProp.agent
+        : apiProp.agent._id
+      : undefined,
+    isActive: apiProp.isActive,
+    isFeatured: apiProp.isFeatured,
+    viewCount: apiProp.viewCount,
     createdAt: new Date(apiProp.createdAt),
     updatedAt: new Date(apiProp.updatedAt),
   };
@@ -172,9 +198,8 @@ export const propertyService = {
   /**
    * Get current user's properties
    */
-  async getMyProperties(includeInactive: boolean = false): Promise<ApiResponse<Property[]>> {
-    const url = includeInactive ? '/properties/my?includeInactive=true' : '/properties/my';
-    const response = await api.get<ApiProperty[]>(url);
+  async getMyProperties(): Promise<ApiResponse<Property[]>> {
+    const response = await api.get<ApiProperty[]>('/properties/my');
     return {
       ...response,
       data: response.data ? response.data.map(transformProperty) : undefined,
@@ -189,24 +214,14 @@ export const propertyService = {
   },
 
   /**
-   * Get nearby properties
-   */
-  async getNearbyProperties(
-    lng: number,
-    lat: number,
-    radius: number = 10,
-    limit: number = 20
-  ): Promise<ApiResponse<Property[]>> {
-    return api.get<Property[]>(
-      `/properties/nearby?lng=${lng}&lat=${lat}&radius=${radius}&limit=${limit}`
-    );
-  },
-
-  /**
    * Create a new property
    */
   async createProperty(data: CreatePropertyData): Promise<ApiResponse<Property>> {
-    return api.post<Property>('/properties', data);
+    const response = await api.post<ApiProperty>('/properties', data);
+    return {
+      ...response,
+      data: response.data ? transformProperty(response.data) : undefined,
+    };
   },
 
   /**
@@ -216,14 +231,11 @@ export const propertyService = {
     id: string,
     data: Partial<CreatePropertyData>
   ): Promise<ApiResponse<Property>> {
-    return api.patch<Property>(`/properties/${id}`, data);
-  },
-
-  /**
-   * Update property status
-   */
-  async updatePropertyStatus(id: string, status: PropertyStatus): Promise<ApiResponse<Property>> {
-    return api.patch<Property>(`/properties/${id}/status`, { status });
+    const response = await api.patch<ApiProperty>(`/properties/${id}`, data);
+    return {
+      ...response,
+      data: response.data ? transformProperty(response.data) : undefined,
+    };
   },
 
   /**
@@ -231,13 +243,6 @@ export const propertyService = {
    */
   async deleteProperty(id: string): Promise<ApiResponse<void>> {
     return api.delete(`/properties/${id}`);
-  },
-
-  /**
-   * Toggle featured status (admin only)
-   */
-  async toggleFeatured(id: string): Promise<ApiResponse<Property>> {
-    return api.post<Property>(`/properties/${id}/feature`);
   },
 };
 

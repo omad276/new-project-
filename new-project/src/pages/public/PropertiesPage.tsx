@@ -89,6 +89,25 @@ function PropertiesPage() {
     { value: 'area_desc', label: isArabic ? 'المساحة: الأكبر' : 'Area: Large to Small' },
   ];
 
+  // Build current filters for FilterPanel - must be defined before callbacks that use it
+  const currentFilters: PropertyFilters = {
+    type: params.type,
+    status: params.status,
+    category: params.category,
+    minPrice: params.minPrice,
+    maxPrice: params.maxPrice,
+    minArea: params.minArea,
+    maxArea: params.maxArea,
+    bedrooms: params.bedrooms,
+    bathrooms: params.bathrooms,
+    city: params.city,
+    minPricePerSqm: params.minPricePerSqm,
+    maxPricePerSqm: params.maxPricePerSqm,
+    minRentalYield: params.minRentalYield,
+    maxRentalYield: params.maxRentalYield,
+    polygon: params.polygon,
+  };
+
   const handleSearch = (query: string) => {
     search(query);
   };
@@ -154,25 +173,6 @@ function PropertiesPage() {
     } else {
       navigator.clipboard.writeText(url);
     }
-  };
-
-  // Build current filters for FilterPanel
-  const currentFilters: PropertyFilters = {
-    type: params.type,
-    status: params.status,
-    category: params.category,
-    minPrice: params.minPrice,
-    maxPrice: params.maxPrice,
-    minArea: params.minArea,
-    maxArea: params.maxArea,
-    bedrooms: params.bedrooms,
-    bathrooms: params.bathrooms,
-    city: params.city,
-    minPricePerSqm: params.minPricePerSqm,
-    maxPricePerSqm: params.maxPricePerSqm,
-    minRentalYield: params.minRentalYield,
-    maxRentalYield: params.maxRentalYield,
-    polygon: params.polygon,
   };
 
   const hasPolygonFilter = currentFilters.polygon && currentFilters.polygon.length > 0;

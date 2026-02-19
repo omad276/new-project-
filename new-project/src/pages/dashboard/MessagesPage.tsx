@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ConversationList, ChatWindow, NewConversationModal } from '@/components/messaging';
-import { Conversation, Message } from '@/types';
+import type { Conversation, Message } from '@/types';
 import { cn } from '@/lib/utils';
 
 // Mock current user

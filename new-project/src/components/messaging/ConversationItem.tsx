@@ -1,6 +1,6 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { Building2 } from 'lucide-react';
-import { Conversation } from '@/types';
+import type { Conversation } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ConversationItemProps {

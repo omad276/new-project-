@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
   Building2,
@@ -11,116 +11,39 @@ import {
   Shield,
   ArrowRight,
   Star,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { PropertyCard } from '@/components/ui/PropertyCard';
+import { propertyService } from '@/services/propertyService';
 import type { Property } from '@/types';
-
-// Mock featured properties
-const mockFeaturedProperties: Property[] = [
-  {
-    id: '1',
-    title: 'Luxury Villa in Riyadh',
-    titleAr: 'فيلا فاخرة في الرياض',
-    description: 'Beautiful 5-bedroom villa with private pool',
-    descriptionAr: 'فيلا جميلة من 5 غرف نوم مع مسبح خاص',
-    type: 'villa',
-    category: 'residential',
-    status: 'for_sale',
-    price: 2500000,
-    currency: 'SAR',
-    area: 450,
-    bedrooms: 5,
-    bathrooms: 4,
-    location: {
-      address: 'Al Olaya District',
-      addressAr: 'حي العليا',
-      city: 'Riyadh',
-      cityAr: 'الرياض',
-      country: 'Saudi Arabia',
-      countryAr: 'السعودية',
-      coordinates: { type: 'Point', coordinates: [46.6753, 24.7136] },
-    },
-    images: ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800'],
-    features: ['Pool', 'Garden', 'Garage'],
-    featuresAr: ['مسبح', 'حديقة', 'كراج'],
-    owner: '1',
-    isActive: true,
-    isFeatured: true,
-    viewCount: 150,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Modern Apartment in Jeddah',
-    titleAr: 'شقة حديثة في جدة',
-    description: 'Stunning sea view apartment',
-    descriptionAr: 'شقة مطلة على البحر',
-    type: 'apartment',
-    category: 'residential',
-    status: 'for_rent',
-    price: 8000,
-    currency: 'SAR',
-    area: 180,
-    bedrooms: 3,
-    bathrooms: 2,
-    location: {
-      address: 'Corniche Road',
-      addressAr: 'طريق الكورنيش',
-      city: 'Jeddah',
-      cityAr: 'جدة',
-      country: 'Saudi Arabia',
-      countryAr: 'السعودية',
-      coordinates: { type: 'Point', coordinates: [39.1728, 21.5433] },
-    },
-    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'],
-    features: ['Sea View', 'Gym', 'Parking'],
-    featuresAr: ['إطلالة بحرية', 'صالة رياضية', 'موقف سيارات'],
-    owner: '2',
-    isActive: true,
-    isFeatured: true,
-    viewCount: 89,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    title: 'Office Space in KAFD',
-    titleAr: 'مكتب في كافد',
-    description: 'Premium office in financial district',
-    descriptionAr: 'مكتب فاخر في الحي المالي',
-    type: 'office',
-    category: 'commercial',
-    status: 'for_rent',
-    price: 15000,
-    currency: 'SAR',
-    area: 250,
-    location: {
-      address: 'KAFD',
-      addressAr: 'مركز الملك عبدالله المالي',
-      city: 'Riyadh',
-      cityAr: 'الرياض',
-      country: 'Saudi Arabia',
-      countryAr: 'السعودية',
-      coordinates: { type: 'Point', coordinates: [46.6396, 24.7648] },
-    },
-    images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=800'],
-    features: ['Meeting Rooms', '24/7 Access', 'Parking'],
-    featuresAr: ['قاعات اجتماعات', 'دخول على مدار الساعة', 'موقف سيارات'],
-    owner: '3',
-    isActive: true,
-    isFeatured: true,
-    viewCount: 67,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
 
 function HomePage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const isArabic = i18n.language === 'ar';
+
+  // Fetch featured properties on mount
+  useEffect(() => {
+    async function fetchFeaturedProperties() {
+      try {
+        setLoading(true);
+        const response = await propertyService.getProperties({ featured: true, limit: 6 });
+        if (response.success && response.data) {
+          setFeaturedProperties(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch featured properties:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFeaturedProperties();
+  }, []);
 
   const stats = [
     { value: '1,500+', label: t('nav.properties'), icon: Building2 },
@@ -159,6 +82,15 @@ function HomePage() {
     { type: 'office', icon: Building2, label: t('property.office') },
     { type: 'land', icon: MapPin, label: t('property.land') },
   ];
+
+  const handlePropertyClick = (id: string) => {
+    navigate(`/properties/${id}`);
+  };
+
+  const handleFavorite = (id: string) => {
+    console.log('Favorite property:', id);
+    // TODO: Implement favorites API call
+  };
 
   return (
     <div>
@@ -278,16 +210,26 @@ function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockFeaturedProperties.map((property) => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-                onClick={(id) => console.log('Navigate to', id)}
-                onFavorite={(id) => console.log('Favorite', id)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : featuredProperties.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredProperties.map((property) => (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  onClick={handlePropertyClick}
+                  onFavorite={handleFavorite}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-text-secondary">
+              {isArabic ? 'لا توجد عقارات مميزة حالياً' : 'No featured properties available'}
+            </div>
+          )}
         </div>
       </section>
 
