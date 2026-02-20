@@ -29,6 +29,7 @@ import {
   AdminDashboard,
   UsersPage as AdminUsersPage,
   PropertiesPage as AdminPropertiesPage,
+  AnalyticsPage as AdminAnalyticsPage,
 } from '@/pages/admin';
 
 // Layout wrapper for pages with Navbar and Footer
@@ -206,6 +207,14 @@ function App() {
           element={
             <AdminLayout>
               <AdminPropertiesPage />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <AdminLayout>
+              <AdminAnalyticsPage />
             </AdminLayout>
           }
         />
