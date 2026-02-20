@@ -139,3 +139,71 @@ export async function deleteProperty(req: AuthRequest, res: Response<ApiResponse
     messageAr: 'تم حذف العقار بنجاح',
   });
 }
+
+/**
+ * POST /api/properties/:id/images
+ * Upload images to a property
+ */
+export async function uploadImages(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
+  const files = req.files as Express.Multer.File[];
+
+  if (!files || files.length === 0) {
+    res.status(400).json({
+      success: false,
+      message: 'No images uploaded',
+      messageAr: 'لم يتم رفع أي صور',
+    });
+    return;
+  }
+
+  // Convert file paths to URLs
+  const imagePaths = files.map((file) => `/uploads/properties/${file.filename}`);
+  const isAdmin = req.user!.role === 'admin';
+
+  const property = await propertyService.addImages(
+    req.params.id,
+    req.user!.id,
+    imagePaths,
+    isAdmin
+  );
+
+  res.status(201).json({
+    success: true,
+    message: `${files.length} image(s) uploaded successfully`,
+    messageAr: `تم رفع ${files.length} صورة بنجاح`,
+    data: property,
+  });
+}
+
+/**
+ * DELETE /api/properties/:id/images/:imageIndex
+ * Remove an image from a property
+ */
+export async function deleteImage(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
+  const imageIndex = parseInt(req.params.imageIndex, 10);
+
+  if (isNaN(imageIndex)) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid image index',
+      messageAr: 'رقم الصورة غير صالح',
+    });
+    return;
+  }
+
+  const isAdmin = req.user!.role === 'admin';
+
+  const property = await propertyService.removeImage(
+    req.params.id,
+    req.user!.id,
+    imageIndex,
+    isAdmin
+  );
+
+  res.json({
+    success: true,
+    message: 'Image removed successfully',
+    messageAr: 'تم حذف الصورة بنجاح',
+    data: property,
+  });
+}

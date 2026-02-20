@@ -3,17 +3,13 @@ import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
+  Users,
   Building2,
-  Heart,
-  GitCompare,
-  Bell,
-  Settings,
+  BarChart3,
   Menu,
   X,
   ChevronLeft,
   LogOut,
-  Calculator,
-  MessageSquare,
   Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,11 +17,11 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface DashboardLayoutProps {
+interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-function DashboardLayout({ children }: DashboardLayoutProps) {
+function AdminLayout({ children }: AdminLayoutProps) {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,7 +29,7 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
   const isArabic = i18n.language === 'ar';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Redirect to login if not authenticated
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -42,8 +38,14 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
+  // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Redirect non-admin users to dashboard
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   const userName = user.fullName;
@@ -55,54 +57,30 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     {
-      href: '/dashboard',
+      href: '/admin',
       icon: LayoutDashboard,
-      label: t('dashboard.overview'),
+      label: isArabic ? 'لوحة التحكم' : 'Dashboard',
     },
     {
-      href: '/dashboard/properties',
+      href: '/admin/users',
+      icon: Users,
+      label: isArabic ? 'المستخدمين' : 'Users',
+    },
+    {
+      href: '/admin/properties',
       icon: Building2,
-      label: t('dashboard.myProperties'),
-      badge: 5,
+      label: isArabic ? 'العقارات' : 'Properties',
     },
     {
-      href: '/dashboard/favorites',
-      icon: Heart,
-      label: t('dashboard.favorites'),
-      badge: 12,
-    },
-    {
-      href: '/dashboard/compare',
-      icon: GitCompare,
-      label: t('dashboard.compare'),
-    },
-    {
-      href: '/dashboard/financial-tools',
-      icon: Calculator,
-      label: isArabic ? 'الأدوات المالية' : 'Financial Tools',
-    },
-    {
-      href: '/dashboard/messages',
-      icon: MessageSquare,
-      label: isArabic ? 'الرسائل' : 'Messages',
-      badge: 2,
-    },
-    {
-      href: '/dashboard/notifications',
-      icon: Bell,
-      label: t('dashboard.notifications'),
-      badge: 3,
-    },
-    {
-      href: '/dashboard/settings',
-      icon: Settings,
-      label: t('dashboard.settings'),
+      href: '/admin/analytics',
+      icon: BarChart3,
+      label: isArabic ? 'التحليلات' : 'Analytics',
     },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return location.pathname === '/dashboard';
+    if (href === '/admin') {
+      return location.pathname === '/admin';
     }
     return location.pathname.startsWith(href);
   };
@@ -120,9 +98,11 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="w-6 h-6" />
           </button>
 
-          <Link to="/" className="flex items-center gap-2">
-            <Building2 className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-primary">{t('common.appName')}</span>
+          <Link to="/admin" className="flex items-center gap-2">
+            <Shield className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold text-primary">
+              {isArabic ? 'لوحة الإدارة' : 'Admin Panel'}
+            </span>
           </Link>
 
           <Avatar src={user.avatar} name={userName} size="sm" />
@@ -148,9 +128,11 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-background-tertiary">
-          <Link to="/" className="flex items-center gap-2">
-            <Building2 className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-primary">{t('common.appName')}</span>
+          <Link to="/admin" className="flex items-center gap-2">
+            <Shield className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold text-primary">
+              {isArabic ? 'لوحة الإدارة' : 'Admin'}
+            </span>
           </Link>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -161,13 +143,15 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
         </div>
 
-        {/* User Info */}
+        {/* Admin Badge */}
         <div className="p-4 border-b border-background-tertiary">
           <div className="flex items-center gap-3">
             <Avatar src={user.avatar} name={userName} size="lg" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-text-primary truncate">{userName}</p>
-              <p className="text-sm text-text-muted truncate">{user.email}</p>
+              <Badge variant="primary" size="sm">
+                {isArabic ? 'مدير' : 'Admin'}
+              </Badge>
             </div>
           </div>
         </div>
@@ -188,34 +172,24 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
               <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <Badge
-                  variant={isActive(item.href) ? 'default' : 'primary'}
-                  size="sm"
-                >
-                  {item.badge}
-                </Badge>
-              )}
             </Link>
           ))}
         </nav>
 
         {/* Bottom Section */}
         <div className="absolute bottom-0 start-0 end-0 p-4 border-t border-background-tertiary">
-          {user.role === 'admin' && (
-            <Link
-              to="/admin"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-            >
-              <Shield className="w-5 h-5" />
-              <span>{isArabic ? 'لوحة الإدارة' : 'Admin Panel'}</span>
-            </Link>
-          )}
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+            <span>{isArabic ? 'لوحة المستخدم' : 'User Dashboard'}</span>
+          </Link>
           <Link
             to="/"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+            <Building2 className="w-5 h-5" />
             <span>{isArabic ? 'العودة للموقع' : 'Back to Site'}</span>
           </Link>
           <button
@@ -236,4 +210,4 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 }
 
-export { DashboardLayout };
+export { AdminLayout };

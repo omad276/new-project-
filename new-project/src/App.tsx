@@ -24,6 +24,12 @@ import {
   FinancialToolsPage,
   MessagesPage,
 } from '@/pages/dashboard';
+import { AdminLayout } from '@/components/layout/AdminLayout';
+import {
+  AdminDashboard,
+  UsersPage as AdminUsersPage,
+  PropertiesPage as AdminPropertiesPage,
+} from '@/pages/admin';
 
 // Layout wrapper for pages with Navbar and Footer
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -175,6 +181,32 @@ function App() {
             <DashboardLayout>
               <MessagesPage />
             </DashboardLayout>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminLayout>
+              <AdminUsersPage />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/properties"
+          element={
+            <AdminLayout>
+              <AdminPropertiesPage />
+            </AdminLayout>
           }
         />
 

@@ -1,3 +1,4 @@
+import fs from 'fs/promises';
 import Property from '../models/Property.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -377,4 +378,84 @@ export async function getAllProperties(): Promise<unknown[]> {
   return Property.find({ isActive: true })
     .populate('owner', 'fullName fullNameAr avatar')
     .sort({ createdAt: -1 });
+}
+
+/**
+ * Add images to a property
+ */
+export async function addImages(
+  propertyId: string,
+  userId: string,
+  imagePaths: string[],
+  isAdmin = false
+): Promise<unknown> {
+  const property = await Property.findById(propertyId);
+
+  if (!property) {
+    throw AppError.notFound('Property not found');
+  }
+
+  // Check ownership unless admin
+  if (!isAdmin && property.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only add images to your own properties');
+  }
+
+  // Add new images to existing array
+  const currentImages = property.images || [];
+  const newImages = [...currentImages, ...imagePaths];
+
+  // Enforce max 20 images
+  if (newImages.length > 20) {
+    throw AppError.badRequest('Maximum 20 images allowed per property');
+  }
+
+  property.images = newImages;
+  await property.save();
+
+  return property;
+}
+
+/**
+ * Remove an image from a property
+ */
+export async function removeImage(
+  propertyId: string,
+  userId: string,
+  imageIndex: number,
+  isAdmin = false
+): Promise<unknown> {
+  const property = await Property.findById(propertyId);
+
+  if (!property) {
+    throw AppError.notFound('Property not found');
+  }
+
+  // Check ownership unless admin
+  if (!isAdmin && property.owner.toString() !== userId) {
+    throw AppError.forbidden('You can only remove images from your own properties');
+  }
+
+  const images = property.images || [];
+
+  if (imageIndex < 0 || imageIndex >= images.length) {
+    throw AppError.badRequest('Invalid image index');
+  }
+
+  // Get image path before removing
+  const imagePath = images[imageIndex];
+
+  // Remove from array
+  images.splice(imageIndex, 1);
+  property.images = images;
+  await property.save();
+
+  // Try to delete file from disk (non-blocking)
+  if (imagePath && imagePath.startsWith('/uploads/')) {
+    const filePath = imagePath.replace(/^\//, '');
+    fs.unlink(filePath).catch(() => {
+      // Ignore errors if file doesn't exist
+    });
+  }
+
+  return property;
 }

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as propertyController from '../controllers/propertyController.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { uploadPropertyImages } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -35,5 +36,16 @@ router.patch('/:id', authenticate, propertyController.updateProperty);
 
 // DELETE /api/properties/:id - Delete a property
 router.delete('/:id', authenticate, propertyController.deleteProperty);
+
+// POST /api/properties/:id/images - Upload images to a property
+router.post(
+  '/:id/images',
+  authenticate,
+  uploadPropertyImages.array('images', 20),
+  propertyController.uploadImages
+);
+
+// DELETE /api/properties/:id/images/:imageIndex - Remove an image from a property
+router.delete('/:id/images/:imageIndex', authenticate, propertyController.deleteImage);
 
 export default router;
