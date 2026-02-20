@@ -34,7 +34,7 @@ function parseExpiresIn(duration: string): number {
  * Generate an access token for a user
  */
 export function generateAccessToken(userId: string, email: string, role: UserRole): string {
-  const payload: JwtPayload = { userId, email, role };
+  const payload: JwtPayload = { userId, id: userId, email, role };
 
   return jwt.sign(payload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,

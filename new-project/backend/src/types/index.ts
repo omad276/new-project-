@@ -73,6 +73,7 @@ export type PublicUser = Omit<IUser, 'password'> & { id: string };
 
 export interface JwtPayload {
   userId: string;
+  id: string; // Alias for userId
   email: string;
   role: UserRole;
 }
@@ -103,6 +104,7 @@ export interface AuthRequest extends Request {
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
+  messageAr?: string;
   data?: T;
   pagination?: {
     page: number;

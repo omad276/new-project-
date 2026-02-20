@@ -20,6 +20,7 @@ import {
   FileText,
   Scale,
   X,
+  Triangle,
 } from 'lucide-react';
 import type { MapScale, ScaleUnit } from '@/types';
 import { Button } from '@/components/ui/Button';
@@ -36,9 +37,11 @@ interface Point {
   y: number;
 }
 
+type MeasurementType = 'distance' | 'area' | 'angle' | 'volume' | 'perimeter';
+
 interface Measurement {
   id: string;
-  type: 'distance' | 'area' | 'angle';
+  type: MeasurementType;
   points: Point[];
   value: number;
   unit: string;
@@ -117,6 +120,8 @@ export function BlueprintViewer({
   const [calibrationDistance, setCalibrationDistance] = useState('');
   const [calibrationUnit, setCalibrationUnit] = useState<ScaleUnit>('m');
   const [showCalibrationWarning, setShowCalibrationWarning] = useState(false);
+  const [calibrationError, setCalibrationError] = useState<string | null>(null);
+  const [calibrationSuccess, setCalibrationSuccess] = useState(false);
 
   // Colors for measurements
   const measurementColors = ['#FF5722', '#2196F3', '#4CAF50', '#9C27B0', '#FF9800'];
@@ -370,6 +375,31 @@ export function BlueprintViewer({
         // Draw label at centroid
         const centroid = getCentroid(transformedPoints);
         drawLabel(ctx, `${measurement.value.toFixed(2)} ${measurement.unit}`, centroid.x, centroid.y, measurement.color);
+      } else if (measurement.type === 'angle' && transformedPoints.length >= 3) {
+        // Draw angle lines (A-B and B-C)
+        ctx.beginPath();
+        ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+        ctx.lineTo(transformedPoints[1].x, transformedPoints[1].y);
+        ctx.lineTo(transformedPoints[2].x, transformedPoints[2].y);
+        ctx.stroke();
+
+        // Draw arc at vertex (point B)
+        const vertex = transformedPoints[1];
+        const angleA = Math.atan2(transformedPoints[0].y - vertex.y, transformedPoints[0].x - vertex.x);
+        const angleC = Math.atan2(transformedPoints[2].y - vertex.y, transformedPoints[2].x - vertex.x);
+        ctx.beginPath();
+        ctx.arc(vertex.x, vertex.y, 25, Math.min(angleA, angleC), Math.max(angleA, angleC));
+        ctx.stroke();
+
+        // Draw points
+        transformedPoints.forEach((p, i) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, i === 1 ? 6 : 4, 0, Math.PI * 2); // Larger point for vertex
+          ctx.fill();
+        });
+
+        // Draw label at vertex
+        drawLabel(ctx, `${measurement.value.toFixed(1)}${measurement.unit}`, vertex.x, vertex.y - 35, measurement.color);
       }
     });
   };
@@ -425,6 +455,18 @@ export function BlueprintViewer({
       ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
       transformedPoints.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
       if (cursorPosition) {
+        ctx.lineTo(cursorPosition.x, cursorPosition.y);
+      }
+      ctx.stroke();
+    } else if (activeTool === 'angle' && transformedPoints.length >= 1) {
+      ctx.beginPath();
+      ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+      if (transformedPoints.length > 1) {
+        ctx.lineTo(transformedPoints[1].x, transformedPoints[1].y);
+        if (cursorPosition) {
+          ctx.lineTo(cursorPosition.x, cursorPosition.y);
+        }
+      } else if (cursorPosition) {
         ctx.lineTo(cursorPosition.x, cursorPosition.y);
       }
       ctx.stroke();
@@ -535,6 +577,24 @@ export function BlueprintViewer({
         }
       } else if (activeTool === 'area') {
         setCurrentPoints([...currentPoints, imagePoint]);
+      } else if (activeTool === 'angle') {
+        if (currentPoints.length < 2) {
+          setCurrentPoints([...currentPoints, imagePoint]);
+        } else {
+          // Complete angle measurement (3 points: A, B (vertex), C)
+          const points = [...currentPoints, imagePoint];
+          const angle = calculateAngle(points[0], points[1], points[2]);
+
+          onMeasurementCreate?.({
+            type: 'angle',
+            points,
+            value: angle,
+            unit: '°',
+            color: measurementColors[measurements.length % measurementColors.length],
+            name: `Angle ${measurements.length + 1}`,
+          });
+          setCurrentPoints([]);
+        }
       }
     }
   };
@@ -666,31 +726,74 @@ export function BlueprintViewer({
     return pixelArea * ratio * ratio; // Scale squared for area
   };
 
+  // Calculate angle between three points (in degrees)
+  // Point B is the vertex of the angle
+  const calculateAngle = (pointA: Point, pointB: Point, pointC: Point): number => {
+    // Vectors from B to A and B to C
+    const vectorBA = { x: pointA.x - pointB.x, y: pointA.y - pointB.y };
+    const vectorBC = { x: pointC.x - pointB.x, y: pointC.y - pointB.y };
+
+    // Dot product and cross product
+    const dotProduct = vectorBA.x * vectorBC.x + vectorBA.y * vectorBC.y;
+    const crossProduct = vectorBA.x * vectorBC.y - vectorBA.y * vectorBC.x;
+
+    // Calculate angle using atan2 for proper quadrant handling
+    const angleRadians = Math.atan2(Math.abs(crossProduct), dotProduct);
+    const angleDegrees = (angleRadians * 180) / Math.PI;
+
+    return angleDegrees;
+  };
+
   // Calculate pixel distance for calibration
   const calculatePixelDistance = (p1: Point, p2: Point): number => {
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
   };
 
   // Handle calibration submission
-  const handleCalibrationSubmit = () => {
-    if (!calibrationDistance || calibrationPoints.length !== 2) return;
+  const handleCalibrationSubmit = async () => {
+    setCalibrationError(null);
+
+    if (!calibrationDistance || calibrationPoints.length !== 2) {
+      setCalibrationError(isArabic ? 'يرجى تحديد نقطتين وإدخال المسافة' : 'Please select two points and enter a distance');
+      return;
+    }
 
     const pixelDist = calculatePixelDistance(calibrationPoints[0], calibrationPoints[1]);
     const realDist = parseFloat(calibrationDistance);
 
-    if (pixelDist <= 0 || realDist <= 0 || isNaN(realDist)) return;
+    if (isNaN(realDist) || realDist <= 0) {
+      setCalibrationError(isArabic ? 'يرجى إدخال مسافة صالحة أكبر من صفر' : 'Please enter a valid distance greater than zero');
+      return;
+    }
 
-    onCalibrate?.({
-      pixelDistance: pixelDist,
-      realDistance: realDist,
-      unit: calibrationUnit,
-    });
+    if (pixelDist <= 0) {
+      setCalibrationError(isArabic ? 'النقطتان متطابقتان، يرجى اختيار نقاط مختلفة' : 'Points are identical, please select different points');
+      return;
+    }
 
-    // Reset calibration state
-    setCalibrationPoints([]);
-    setShowCalibrationModal(false);
-    setCalibrationDistance('');
-    setActiveTool('pan');
+    try {
+      await onCalibrate?.({
+        pixelDistance: pixelDist,
+        realDistance: realDist,
+        unit: calibrationUnit,
+      });
+
+      // Show success message
+      setCalibrationSuccess(true);
+      setTimeout(() => setCalibrationSuccess(false), 3000);
+
+      // Reset calibration state
+      setCalibrationPoints([]);
+      setShowCalibrationModal(false);
+      setCalibrationDistance('');
+      setActiveTool('pan');
+    } catch (error) {
+      setCalibrationError(
+        error instanceof Error
+          ? error.message
+          : (isArabic ? 'فشلت المعايرة، يرجى المحاولة مرة أخرى' : 'Calibration failed, please try again')
+      );
+    }
   };
 
   // Cancel calibration
@@ -800,6 +903,24 @@ export function BlueprintViewer({
               className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <Square className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant={activeTool === 'angle' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => {
+                if (!isCalibrated) {
+                  setShowCalibrationWarning(true);
+                  setTimeout(() => setShowCalibrationWarning(false), 3000);
+                  return;
+                }
+                setActiveTool('angle');
+                setCurrentPoints([]);
+              }}
+              title={isArabic ? 'قياس الزاوية' : 'Measure Angle'}
+              className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <Triangle className="w-4 h-4" />
             </Button>
           </>
         )}
@@ -954,6 +1075,11 @@ export function BlueprintViewer({
             {activeTool === 'area' && (
               isArabic ? 'انقر لإضافة نقاط، انقر مزدوج للإنهاء' : 'Click to add points, double-click to finish'
             )}
+            {activeTool === 'angle' && (
+              currentPoints.length === 1
+                ? (isArabic ? 'انقر لتحديد رأس الزاوية' : 'Click to set angle vertex')
+                : (isArabic ? 'انقر لتحديد النقطة الثالثة' : 'Click to set third point')
+            )}
           </p>
           <Button
             variant="ghost"
@@ -1009,6 +1135,23 @@ export function BlueprintViewer({
         </div>
       )}
 
+      {/* Calibration Success Notification */}
+      {calibrationSuccess && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-300 backdrop-blur rounded-lg px-4 py-3 shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <Scale className="w-5 h-5 text-green-600" />
+            <span className="font-medium text-green-900">
+              {isArabic ? 'تمت المعايرة بنجاح' : 'Calibration Successful'}
+            </span>
+          </div>
+          <p className="text-sm text-green-800 mt-1">
+            {isArabic
+              ? 'يمكنك الآن استخدام أدوات القياس'
+              : 'You can now use measurement tools'}
+          </p>
+        </div>
+      )}
+
       {/* Calibration Modal */}
       {showCalibrationModal && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1034,7 +1177,7 @@ export function BlueprintViewer({
               <input
                 type="number"
                 value={calibrationDistance}
-                onChange={(e) => setCalibrationDistance(e.target.value)}
+                onChange={(e) => { setCalibrationDistance(e.target.value); setCalibrationError(null); }}
                 placeholder={isArabic ? 'المسافة' : 'Distance'}
                 className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 min="0"
@@ -1053,6 +1196,12 @@ export function BlueprintViewer({
                 <option value="in">{isArabic ? 'بوصة' : 'Inches (in)'}</option>
               </select>
             </div>
+
+            {calibrationError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {calibrationError}
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button

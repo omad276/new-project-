@@ -1,13 +1,13 @@
 import api from '@/lib/api';
-import type { Measurement, CreateMeasurementPayload } from '@/types';
+import type { Measurement, CreateMeasurementPayload, MeasurementType } from '@/types';
 
-// Backend measurement type (slightly different from frontend)
+// Backend measurement type
 interface BackendMeasurement {
   id: string;
   map: string;
   project: string;
   name: string;
-  type: 'area' | 'distance' | 'volume' | 'perimeter' | 'angle';
+  type: MeasurementType;
   points: { x: number; y: number; z?: number }[];
   value: number;
   unit: string;
@@ -24,7 +24,7 @@ function transformMeasurement(m: BackendMeasurement): Measurement {
   return {
     id: m.id,
     mapId: m.map,
-    type: m.type as 'distance' | 'area' | 'angle',
+    type: m.type,
     points: m.points,
     value: m.value,
     unit: m.unit,
@@ -57,11 +57,11 @@ export const measurementApi = {
   // Create a new measurement
   async createMeasurement(mapId: string, payload: CreateMeasurementPayload): Promise<Measurement> {
     // Transform frontend payload to backend format
+    // Note: We do NOT send 'value' - backend calculates it to be the single source of truth
     const backendPayload = {
       name: payload.name,
       type: payload.type,
       points: payload.points,
-      value: payload.value,
       unit: payload.unit,
       color: payload.color,
     };

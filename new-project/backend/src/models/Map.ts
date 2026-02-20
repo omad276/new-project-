@@ -96,6 +96,45 @@ const mapSchema = new Schema<IMapDocument>(
 );
 
 // ============================================
+// Pre-save Hook: Validate Scale Calibration
+// ============================================
+
+mapSchema.pre('save', function (next) {
+  // If setting isCalibrated to true, validate scale data
+  if (this.isCalibrated) {
+    if (!this.scale) {
+      return next(new Error('Scale data is required for calibrated maps'));
+    }
+
+    const { pixelDistance, realDistance, unit } = this.scale;
+
+    // Validate required scale fields
+    if (!pixelDistance || pixelDistance <= 0) {
+      return next(new Error('Pixel distance must be a positive number'));
+    }
+    if (!realDistance || realDistance <= 0) {
+      return next(new Error('Real distance must be a positive number'));
+    }
+    if (!unit) {
+      return next(new Error('Scale unit is required'));
+    }
+
+    // Auto-calculate ratio if not provided or invalid
+    const calculatedRatio = realDistance / pixelDistance;
+    if (!this.scale.ratio || this.scale.ratio <= 0 || isNaN(this.scale.ratio)) {
+      this.scale.ratio = calculatedRatio;
+    }
+
+    // Final validation that ratio is positive
+    if (this.scale.ratio <= 0 || isNaN(this.scale.ratio)) {
+      return next(new Error('Scale ratio must be a positive number'));
+    }
+  }
+
+  next();
+});
+
+// ============================================
 // Indexes
 // ============================================
 

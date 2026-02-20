@@ -260,7 +260,7 @@ export type MeasurementUnit =
 export interface Measurement {
   id: string;
   mapId: string;
-  type: 'distance' | 'area' | 'angle';
+  type: MeasurementType;
   points: Point[];
   value: number;
   unit: string;

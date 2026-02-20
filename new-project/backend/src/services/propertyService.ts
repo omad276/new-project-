@@ -26,8 +26,8 @@ interface CreatePropertyDTO {
     country?: string;
     countryAr?: string;
     coordinates?: {
-      type: string;
-      coordinates: [number, number];
+      type?: string;
+      coordinates?: [number, number];
     };
   };
   images?: string[];
@@ -57,8 +57,8 @@ interface UpdatePropertyDTO {
     country?: string;
     countryAr?: string;
     coordinates?: {
-      type: string;
-      coordinates: [number, number];
+      type?: string;
+      coordinates?: [number, number];
     };
   };
   images?: string[];

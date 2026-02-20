@@ -97,7 +97,7 @@ export async function addToFavorites(
 export async function removeFromFavorites(userId: string, propertyId: string) {
   const userFavorites = await getOrCreateUserFavorites(userId);
 
-  userFavorites.favorites = userFavorites.favorites.filter(
+  (userFavorites.favorites as unknown[]) = userFavorites.favorites.filter(
     (f: { property: mongoose.Types.ObjectId }) => f.property.toString() !== propertyId
   );
 
@@ -224,7 +224,7 @@ export async function deleteCollection(userId: string, collectionId: string) {
   userFavorites.collections.splice(collectionIndex, 1);
 
   // Remove collection reference from favorites
-  userFavorites.favorites.forEach((f: { collectionId?: mongoose.Types.ObjectId }) => {
+  userFavorites.favorites.forEach((f: { collectionId?: mongoose.Types.ObjectId | null }) => {
     if (f.collectionId?.toString() === collectionId) {
       f.collectionId = undefined;
     }
@@ -273,7 +273,7 @@ export async function getSharedCollection(shareLink: string) {
   }
 
   const collection = userFavorites.collections.find(
-    (c: { shareLink?: string }) => c.shareLink === shareLink
+    (c: { shareLink?: string | null }) => c.shareLink === shareLink
   );
 
   if (!collection || !collection.isShared) {
@@ -282,7 +282,7 @@ export async function getSharedCollection(shareLink: string) {
 
   // Get favorites in this collection
   const collectionFavorites = userFavorites.favorites.filter(
-    (f: { collectionId?: mongoose.Types.ObjectId }) =>
+    (f: { collectionId?: mongoose.Types.ObjectId | null }) =>
       f.collectionId?.toString() === collection._id.toString()
   );
 
