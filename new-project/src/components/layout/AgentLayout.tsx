@@ -4,29 +4,26 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Building2,
-  Heart,
-  GitCompare,
-  Bell,
-  Settings,
+  Users,
+  BarChart3,
   Menu,
   X,
   ChevronLeft,
   LogOut,
-  Calculator,
-  MessageSquare,
-  Shield,
   Briefcase,
+  MessageSquare,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface DashboardLayoutProps {
+interface AgentLayoutProps {
   children: React.ReactNode;
 }
 
-function DashboardLayout({ children }: DashboardLayoutProps) {
+function AgentLayout({ children }: AgentLayoutProps) {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,7 +31,7 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
   const isArabic = i18n.language === 'ar';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Redirect to login if not authenticated
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -43,8 +40,14 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
+  // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Redirect non-agent users to dashboard (allow admin access too)
+  if (user.role !== 'agent' && user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   const userName = user.fullName;
@@ -56,54 +59,43 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     {
-      href: '/dashboard',
+      href: '/agent',
       icon: LayoutDashboard,
-      label: t('dashboard.overview'),
+      label: isArabic ? 'لوحة التحكم' : 'Dashboard',
     },
     {
-      href: '/dashboard/properties',
+      href: '/agent/listings',
       icon: Building2,
-      label: t('dashboard.myProperties'),
-      badge: 5,
-    },
-    {
-      href: '/dashboard/favorites',
-      icon: Heart,
-      label: t('dashboard.favorites'),
+      label: isArabic ? 'قوائمي' : 'My Listings',
       badge: 12,
     },
     {
-      href: '/dashboard/compare',
-      icon: GitCompare,
-      label: t('dashboard.compare'),
+      href: '/agent/leads',
+      icon: Users,
+      label: isArabic ? 'العملاء المحتملين' : 'Leads',
+      badge: 5,
     },
     {
-      href: '/dashboard/financial-tools',
-      icon: Calculator,
-      label: isArabic ? 'الأدوات المالية' : 'Financial Tools',
+      href: '/agent/appointments',
+      icon: Calendar,
+      label: isArabic ? 'المواعيد' : 'Appointments',
     },
     {
-      href: '/dashboard/messages',
+      href: '/agent/messages',
       icon: MessageSquare,
       label: isArabic ? 'الرسائل' : 'Messages',
-      badge: 2,
-    },
-    {
-      href: '/dashboard/notifications',
-      icon: Bell,
-      label: t('dashboard.notifications'),
       badge: 3,
     },
     {
-      href: '/dashboard/settings',
-      icon: Settings,
-      label: t('dashboard.settings'),
+      href: '/agent/performance',
+      icon: BarChart3,
+      label: isArabic ? 'الأداء' : 'Performance',
     },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return location.pathname === '/dashboard';
+    if (href === '/agent') {
+      return location.pathname === '/agent';
     }
     return location.pathname.startsWith(href);
   };
@@ -121,9 +113,11 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="w-6 h-6" />
           </button>
 
-          <Link to="/" className="flex items-center gap-2">
-            <Building2 className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-primary">{t('common.appName')}</span>
+          <Link to="/agent" className="flex items-center gap-2">
+            <Briefcase className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold text-primary">
+              {isArabic ? 'لوحة الوكيل' : 'Agent Portal'}
+            </span>
           </Link>
 
           <Avatar src={user.avatar} name={userName} size="sm" />
@@ -149,9 +143,11 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-background-tertiary">
-          <Link to="/" className="flex items-center gap-2">
-            <Building2 className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-primary">{t('common.appName')}</span>
+          <Link to="/agent" className="flex items-center gap-2">
+            <Briefcase className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold text-primary">
+              {isArabic ? 'الوكيل' : 'Agent'}
+            </span>
           </Link>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -162,13 +158,15 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
         </div>
 
-        {/* User Info */}
+        {/* Agent Badge */}
         <div className="p-4 border-b border-background-tertiary">
           <div className="flex items-center gap-3">
             <Avatar src={user.avatar} name={userName} size="lg" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-text-primary truncate">{userName}</p>
-              <p className="text-sm text-text-muted truncate">{user.email}</p>
+              <Badge variant="success" size="sm">
+                {isArabic ? 'وكيل عقاري' : 'Real Estate Agent'}
+              </Badge>
             </div>
           </div>
         </div>
@@ -203,29 +201,18 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Bottom Section */}
         <div className="absolute bottom-0 start-0 end-0 p-4 border-t border-background-tertiary">
-          {user.role === 'admin' && (
-            <Link
-              to="/admin"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-            >
-              <Shield className="w-5 h-5" />
-              <span>{isArabic ? 'لوحة الإدارة' : 'Admin Panel'}</span>
-            </Link>
-          )}
-          {(user.role === 'agent' || user.role === 'admin') && (
-            <Link
-              to="/agent"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-green-500 hover:bg-green-500/10 transition-colors"
-            >
-              <Briefcase className="w-5 h-5" />
-              <span>{isArabic ? 'لوحة الوكيل' : 'Agent Portal'}</span>
-            </Link>
-          )}
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+            <span>{isArabic ? 'لوحة المستخدم' : 'User Dashboard'}</span>
+          </Link>
           <Link
             to="/"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+            <Building2 className="w-5 h-5" />
             <span>{isArabic ? 'العودة للموقع' : 'Back to Site'}</span>
           </Link>
           <button
@@ -246,4 +233,4 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 }
 
-export { DashboardLayout };
+export { AgentLayout };

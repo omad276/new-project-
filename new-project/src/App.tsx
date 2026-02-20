@@ -31,6 +31,12 @@ import {
   PropertiesPage as AdminPropertiesPage,
   AnalyticsPage as AdminAnalyticsPage,
 } from '@/pages/admin';
+import { AgentLayout } from '@/components/layout/AgentLayout';
+import {
+  AgentDashboard,
+  LeadsPage as AgentLeadsPage,
+  PerformancePage as AgentPerformancePage,
+} from '@/pages/agent';
 
 // Layout wrapper for pages with Navbar and Footer
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -216,6 +222,32 @@ function App() {
             <AdminLayout>
               <AdminAnalyticsPage />
             </AdminLayout>
+          }
+        />
+
+        {/* Agent Routes */}
+        <Route
+          path="/agent"
+          element={
+            <AgentLayout>
+              <AgentDashboard />
+            </AgentLayout>
+          }
+        />
+        <Route
+          path="/agent/leads"
+          element={
+            <AgentLayout>
+              <AgentLeadsPage />
+            </AgentLayout>
+          }
+        />
+        <Route
+          path="/agent/performance"
+          element={
+            <AgentLayout>
+              <AgentPerformancePage />
+            </AgentLayout>
           }
         />
 
