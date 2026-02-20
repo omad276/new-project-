@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { ZodError } from 'zod';
 import { AppError } from '../utils/AppError.js';
 import { ApiErrorResponse } from '../types/index.js';
 import { config } from '../config/index.js';
@@ -35,6 +36,18 @@ export function errorHandler(
     statusCode = err.statusCode;
     message = err.message;
     errors = err.errors;
+  } else if (err instanceof ZodError) {
+    // Zod validation error
+    statusCode = 400;
+    message = 'Validation failed';
+    errors = {};
+    for (const issue of err.errors) {
+      const field = issue.path.join('.') || 'value';
+      if (!errors[field]) {
+        errors[field] = [];
+      }
+      errors[field].push(issue.message);
+    }
   } else if (err instanceof mongoose.Error.ValidationError) {
     // Mongoose validation error
     statusCode = 400;

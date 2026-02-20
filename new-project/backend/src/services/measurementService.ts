@@ -13,10 +13,16 @@ import {
   Point2D,
   Point3D,
   CostItem,
+  CostItemInput,
   CostCategory,
   MapScale,
   ScaleUnit,
 } from '../types/index.js';
+import {
+  getPaginationParams,
+  buildPaginationResult,
+  PaginationResult,
+} from '../utils/pagination.js';
 
 // ============================================
 // Calculation Utilities
@@ -290,12 +296,13 @@ export async function createMeasurement(input: CreateMeasurementInput): Promise<
 }
 
 /**
- * Get all measurements for a map
+ * Get all measurements for a map with pagination
  */
 export async function getMapMeasurements(
   mapId: string,
-  userId?: string
-): Promise<PublicMeasurement[]> {
+  userId?: string,
+  options?: { page?: number; limit?: number }
+): Promise<PaginationResult<PublicMeasurement>> {
   const map = await Map.findById(mapId);
   if (!map) {
     throw AppError.notFound('Map not found');
@@ -312,17 +319,29 @@ export async function getMapMeasurements(
     throw AppError.forbidden('You do not have access to this map');
   }
 
-  const measurements = await Measurement.findByMap(mapId);
-  return measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+  const { page, limit, skip } = getPaginationParams(options || {});
+
+  const [measurements, total] = await Promise.all([
+    Measurement.find({ map: mapId })
+      .populate('createdBy', 'id fullName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Measurement.countDocuments({ map: mapId }),
+  ]);
+
+  const data = measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+  return buildPaginationResult(data, total, page, limit);
 }
 
 /**
- * Get all measurements for a project
+ * Get all measurements for a project with pagination
  */
 export async function getProjectMeasurements(
   projectId: string,
-  userId?: string
-): Promise<PublicMeasurement[]> {
+  userId?: string,
+  options?: { page?: number; limit?: number }
+): Promise<PaginationResult<PublicMeasurement>> {
   const project = await Project.findById(projectId);
   if (!project) {
     throw AppError.notFound('Project not found');
@@ -333,8 +352,20 @@ export async function getProjectMeasurements(
     throw AppError.forbidden('You do not have access to this project');
   }
 
-  const measurements = await Measurement.findByProject(projectId);
-  return measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+  const { page, limit, skip } = getPaginationParams(options || {});
+
+  const [measurements, total] = await Promise.all([
+    Measurement.find({ project: projectId })
+      .populate('createdBy', 'id fullName email')
+      .populate('map', 'id name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Measurement.countDocuments({ project: projectId }),
+  ]);
+
+  const data = measurements.map((m: IMeasurementDocument) => m.toPublicJSON());
+  return buildPaginationResult(data, total, page, limit);
 }
 
 /**
@@ -468,7 +499,7 @@ interface CreateCostEstimateInput {
   description?: string;
   mapId?: string;
   measurementIds?: string[];
-  items: CostItem[];
+  items: CostItemInput[];
   taxRate?: number;
   currency?: string;
   notes?: string;
@@ -477,7 +508,7 @@ interface CreateCostEstimateInput {
 interface UpdateCostEstimateInput {
   name?: string;
   description?: string;
-  items?: CostItem[];
+  items?: CostItemInput[];
   taxRate?: number;
   notes?: string;
 }
@@ -537,12 +568,13 @@ export async function createCostEstimate(
 }
 
 /**
- * Get all cost estimates for a project
+ * Get all cost estimates for a project with pagination
  */
 export async function getProjectEstimates(
   projectId: string,
-  userId?: string
-): Promise<PublicCostEstimate[]> {
+  userId?: string,
+  options?: { page?: number; limit?: number }
+): Promise<PaginationResult<PublicCostEstimate>> {
   const project = await Project.findById(projectId);
   if (!project) {
     throw AppError.notFound('Project not found');
@@ -553,8 +585,19 @@ export async function getProjectEstimates(
     throw AppError.forbidden('You do not have access to this project');
   }
 
-  const estimates = await CostEstimate.findByProject(projectId);
-  return estimates.map((e: ICostEstimateDocument) => e.toPublicJSON());
+  const { page, limit, skip } = getPaginationParams(options || {});
+
+  const [estimates, total] = await Promise.all([
+    CostEstimate.find({ project: projectId })
+      .populate('createdBy', 'id fullName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    CostEstimate.countDocuments({ project: projectId }),
+  ]);
+
+  const data = estimates.map((e: ICostEstimateDocument) => e.toPublicJSON());
+  return buildPaginationResult(data, total, page, limit);
 }
 
 /**
@@ -607,7 +650,12 @@ export async function updateCostEstimate(
 
   if (data.name) estimate.name = data.name;
   if (data.description !== undefined) estimate.description = data.description;
-  if (data.items) estimate.items = data.items;
+  if (data.items) {
+    estimate.items = data.items.map((item) => ({
+      ...item,
+      totalCost: item.unitCost * item.quantity,
+    }));
+  }
   if (data.taxRate !== undefined) estimate.taxRate = data.taxRate;
   if (data.notes !== undefined) estimate.notes = data.notes;
 

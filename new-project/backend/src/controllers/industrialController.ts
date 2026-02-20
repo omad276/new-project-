@@ -1,7 +1,12 @@
 import { Response } from 'express';
 import * as industrialService from '../services/industrialService.js';
-import { AuthRequest, ApiResponse, FactoryType, ZoningType } from '../types/index.js';
-import { AppError } from '../utils/AppError.js';
+import { AuthRequest, ApiResponse } from '../types/index.js';
+import {
+  validate,
+  createIndustrialSchema,
+  updateIndustrialSchema,
+  industrialQuerySchema,
+} from '../utils/validation.js';
 
 // ============================================
 // Industrial Controller
@@ -15,26 +20,13 @@ export async function createIndustrial(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const { propertyId, factoryType, zoningType, powerCapacity } = req.body;
-
-  if (!propertyId) {
-    throw AppError.badRequest('propertyId is required');
-  }
-  if (!factoryType) {
-    throw AppError.badRequest('factoryType is required');
-  }
-  if (!zoningType) {
-    throw AppError.badRequest('zoningType is required');
-  }
-  if (!powerCapacity || typeof powerCapacity.value !== 'number') {
-    throw AppError.badRequest('powerCapacity.value is required');
-  }
-
-  const industrial = await industrialService.createIndustrial(req.user!.userId, req.body);
+  const data = validate(createIndustrialSchema, req.body);
+  const industrial = await industrialService.createIndustrial(req.user!.userId, data);
 
   res.status(201).json({
     success: true,
     message: 'Industrial data created successfully',
+    messageAr: 'تم إنشاء البيانات الصناعية بنجاح',
     data: industrial,
   });
 }
@@ -49,6 +41,7 @@ export async function getIndustrial(req: AuthRequest, res: Response<ApiResponse>
   res.json({
     success: true,
     message: 'Industrial data retrieved',
+    messageAr: 'تم استرجاع البيانات الصناعية',
     data: industrial,
   });
 }
@@ -66,6 +59,7 @@ export async function getIndustrialByProperty(
   res.json({
     success: true,
     message: 'Industrial data retrieved',
+    messageAr: 'تم استرجاع البيانات الصناعية',
     data: industrial,
   });
 }
@@ -75,42 +69,13 @@ export async function getIndustrialByProperty(
  * List all industrial data with filters
  */
 export async function listIndustrial(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
-  const {
-    page,
-    limit,
-    factoryType,
-    zoningType,
-    minPowerCapacity,
-    maxPowerCapacity,
-    hasWaterAccess,
-    minCeilingHeight,
-    hasLoadingDocks,
-    environmentalCompliance,
-  } = req.query;
-
-  const result = await industrialService.listIndustrial({
-    page: page ? parseInt(page as string) : undefined,
-    limit: limit ? parseInt(limit as string) : undefined,
-    factoryType: factoryType as FactoryType | undefined,
-    zoningType: zoningType as ZoningType | undefined,
-    minPowerCapacity: minPowerCapacity ? parseFloat(minPowerCapacity as string) : undefined,
-    maxPowerCapacity: maxPowerCapacity ? parseFloat(maxPowerCapacity as string) : undefined,
-    hasWaterAccess:
-      hasWaterAccess === 'true' ? true : hasWaterAccess === 'false' ? false : undefined,
-    minCeilingHeight: minCeilingHeight ? parseFloat(minCeilingHeight as string) : undefined,
-    hasLoadingDocks:
-      hasLoadingDocks === 'true' ? true : hasLoadingDocks === 'false' ? false : undefined,
-    environmentalCompliance:
-      environmentalCompliance === 'true'
-        ? true
-        : environmentalCompliance === 'false'
-          ? false
-          : undefined,
-  });
+  const query = validate(industrialQuerySchema, req.query);
+  const result = await industrialService.listIndustrial(query);
 
   res.json({
     success: true,
     message: 'Industrial data retrieved',
+    messageAr: 'تم استرجاع البيانات الصناعية',
     data: result.data,
     pagination: result.pagination,
   });
@@ -124,15 +89,17 @@ export async function updateIndustrial(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
+  const data = validate(updateIndustrialSchema, req.body);
   const industrial = await industrialService.updateIndustrial(
     req.params.id,
     req.user!.userId,
-    req.body
+    data
   );
 
   res.json({
     success: true,
     message: 'Industrial data updated successfully',
+    messageAr: 'تم تحديث البيانات الصناعية بنجاح',
     data: industrial,
   });
 }
@@ -152,6 +119,7 @@ export async function deleteIndustrial(
   res.json({
     success: true,
     message: 'Industrial data deleted successfully',
+    messageAr: 'تم حذف البيانات الصناعية بنجاح',
   });
 }
 
@@ -168,6 +136,7 @@ export async function getIndustrialStats(
   res.json({
     success: true,
     message: 'Industrial statistics retrieved',
+    messageAr: 'تم استرجاع الإحصائيات الصناعية',
     data: stats,
   });
 }

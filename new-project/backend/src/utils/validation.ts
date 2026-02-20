@@ -78,7 +78,7 @@ export const changePasswordSchema = z.object({
  * Validate data against a Zod schema
  * Throws AppError on validation failure
  */
-export function validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
+export function validate<T extends z.ZodType>(schema: T, data: unknown): z.output<T> {
   const result = schema.safeParse(data);
 
   if (!result.success) {
@@ -288,14 +288,14 @@ export type PropertyQueryInput = z.output<typeof propertyQuerySchema>;
 // User Management Validation Schemas (Admin)
 // ============================================
 
-// Helper to properly parse boolean query params
+// Helper to properly parse boolean query params from URL strings
+// Uses z.coerce pattern with custom transform for proper type inference
 const booleanQueryParam = z
-  .union([z.boolean(), z.string()])
+  .string()
   .optional()
-  .transform((val) => {
-    if (val === undefined) return undefined;
-    if (typeof val === 'boolean') return val;
-    return val === 'true';
+  .transform((val): boolean | undefined => {
+    if (val === undefined || val === '') return undefined;
+    return val.toLowerCase() === 'true';
   });
 
 export const userQuerySchema = z.object({
@@ -317,3 +317,282 @@ export const updateUserSchema = z.object({
 
 export type UserQueryInput = z.output<typeof userQuerySchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+// ============================================
+// Industrial Validation Schemas
+// ============================================
+
+export const factoryTypeSchema = z.enum([
+  'manufacturing',
+  'assembly',
+  'processing',
+  'warehouse',
+  'distribution',
+  'cold_storage',
+  'food_processing',
+  'pharmaceutical',
+  'chemical',
+  'textile',
+  'automotive',
+  'electronics',
+  'other',
+]);
+
+export const zoningTypeSchema = z.enum([
+  'light_industrial',
+  'heavy_industrial',
+  'mixed_use',
+  'free_zone',
+  'special_economic',
+]);
+
+export const powerUnitSchema = z.enum(['kW', 'MW', 'kVA', 'MVA']);
+export const waterUnitSchema = z.enum(['liters', 'gallons', 'cubic_meters']);
+export const heightUnitSchema = z.enum(['m', 'ft']);
+export const loadingDockTypeSchema = z.enum(['ground_level', 'dock_height', 'both']);
+export const capacityUnitSchema = z.enum(['sqm', 'sqft', 'pallets', 'tons']);
+
+export const createIndustrialSchema = z.object({
+  propertyId: z.string().min(1, 'Property ID is required'),
+  factoryType: factoryTypeSchema,
+  zoningType: zoningTypeSchema,
+  powerCapacity: z.object({
+    value: z.number().positive('Power capacity must be positive'),
+    unit: powerUnitSchema.default('kW'),
+  }),
+  waterAccess: z
+    .object({
+      available: z.boolean(),
+      dailyCapacity: z.number().positive().optional(),
+      unit: waterUnitSchema.default('cubic_meters'),
+    })
+    .optional(),
+  ceilingHeight: z
+    .object({
+      value: z.number().positive(),
+      unit: heightUnitSchema.default('m'),
+    })
+    .optional(),
+  loadingDocks: z
+    .object({
+      count: z.number().int().min(0),
+      type: loadingDockTypeSchema.default('ground_level'),
+    })
+    .optional(),
+  productionLines: z
+    .object({
+      count: z.number().int().min(0),
+      description: z.string().max(500).optional(),
+    })
+    .optional(),
+  warehouseCapacity: z
+    .object({
+      value: z.number().positive(),
+      unit: capacityUnitSchema.default('sqm'),
+    })
+    .optional(),
+  utilities: z
+    .object({
+      electricity: z.boolean().default(true),
+      gas: z.boolean().default(false),
+      water: z.boolean().default(true),
+      sewage: z.boolean().default(true),
+      internet: z.boolean().default(true),
+      hvac: z.boolean().default(false),
+    })
+    .optional(),
+  certifications: z.array(z.string().max(100)).max(20).optional(),
+  environmentalCompliance: z.boolean().default(false),
+});
+
+export const updateIndustrialSchema = createIndustrialSchema.partial().omit({ propertyId: true });
+
+export const industrialQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  factoryType: factoryTypeSchema.optional(),
+  zoningType: zoningTypeSchema.optional(),
+  minPowerCapacity: z.coerce.number().min(0).optional(),
+  maxPowerCapacity: z.coerce.number().min(0).optional(),
+  hasWaterAccess: booleanQueryParam,
+  minCeilingHeight: z.coerce.number().min(0).optional(),
+  hasLoadingDocks: booleanQueryParam,
+  environmentalCompliance: booleanQueryParam,
+});
+
+export type CreateIndustrialInput = z.output<typeof createIndustrialSchema>;
+export type UpdateIndustrialInput = z.infer<typeof updateIndustrialSchema>;
+export type IndustrialQueryInput = z.output<typeof industrialQuerySchema>;
+
+// ============================================
+// Favorites Validation Schemas
+// ============================================
+
+export const addFavoriteSchema = z.object({
+  propertyId: z.string().min(1, 'Property ID is required'),
+  collectionId: z.string().optional(),
+  notes: z.string().max(1000, 'Notes too long').optional(),
+});
+
+export const updateFavoriteNotesSchema = z.object({
+  notes: z.string().max(1000, 'Notes too long'),
+});
+
+export const moveToCollectionSchema = z.object({
+  collectionId: z.string().nullable(),
+});
+
+export const createCollectionSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  nameAr: z.string().max(100).optional(),
+  description: z.string().max(500).optional(),
+  descriptionAr: z.string().max(500).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')
+    .optional(),
+  icon: z.string().max(50).optional(),
+});
+
+export const updateCollectionSchema = createCollectionSchema.partial().extend({
+  isShared: z.boolean().optional(),
+});
+
+export type AddFavoriteInput = z.infer<typeof addFavoriteSchema>;
+export type UpdateFavoriteNotesInput = z.infer<typeof updateFavoriteNotesSchema>;
+export type MoveToCollectionInput = z.infer<typeof moveToCollectionSchema>;
+export type CreateCollectionInput = z.infer<typeof createCollectionSchema>;
+export type UpdateCollectionInput = z.infer<typeof updateCollectionSchema>;
+
+// ============================================
+// Measurement Validation Schemas
+// ============================================
+
+export const measurementTypeSchema = z.enum(['area', 'distance', 'volume', 'perimeter', 'angle']);
+export const measurementUnitSchema = z.enum([
+  'm',
+  'cm',
+  'mm',
+  'ft',
+  'in',
+  'sqm',
+  'sqft',
+  'cbm',
+  'cbft',
+  'deg',
+]);
+
+const point2DSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  z: z.number().optional(),
+});
+
+export const createMeasurementSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  type: measurementTypeSchema,
+  points: z.array(point2DSchema).min(2, 'At least 2 points required').max(1000),
+  unit: measurementUnitSchema.optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const updateMeasurementSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export type CreateMeasurementInput = z.infer<typeof createMeasurementSchema>;
+export type UpdateMeasurementInput = z.infer<typeof updateMeasurementSchema>;
+
+// ============================================
+// Cost Estimate Validation Schemas
+// ============================================
+
+export const costCategorySchema = z.enum(['material', 'labor', 'equipment', 'overhead', 'other']);
+
+const costItemSchema = z.object({
+  name: z.string().min(1, 'Item name required').max(200),
+  category: costCategorySchema,
+  unitCost: z.number().min(0, 'Unit cost must be non-negative'),
+  unit: z.string().min(1).max(50),
+  quantity: z.number().min(0, 'Quantity must be non-negative'),
+});
+
+export const createCostEstimateSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200),
+  description: z.string().max(1000).optional(),
+  mapId: z.string().optional(),
+  measurementIds: z.array(z.string()).optional(),
+  items: z.array(costItemSchema).min(1, 'At least one item required'),
+  taxRate: z.number().min(0).max(100).default(0),
+  currency: z.string().length(3).default('SAR'),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateCostEstimateSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+  items: z.array(costItemSchema).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const calculateFromMeasurementsSchema = z.object({
+  measurementIds: z.array(z.string()).min(1, 'At least one measurement required'),
+  unitCosts: z.array(
+    z.object({
+      type: measurementTypeSchema,
+      costPerUnit: z.number().min(0),
+      unit: z.string().min(1),
+    })
+  ),
+});
+
+export type CreateCostEstimateInput = z.infer<typeof createCostEstimateSchema>;
+export type UpdateCostEstimateInput = z.infer<typeof updateCostEstimateSchema>;
+export type CalculateFromMeasurementsInput = z.infer<typeof calculateFromMeasurementsSchema>;
+
+// ============================================
+// Map Validation Schemas
+// ============================================
+
+export const scaleUnitSchema = z.enum(['m', 'cm', 'mm', 'ft', 'in']);
+
+export const uploadMapSchema = z.object({
+  name: z.string().min(1, 'Map name is required').max(200),
+  description: z.string().max(1000).optional(),
+});
+
+export const updateMapSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+});
+
+export const calibrateMapSchema = z.object({
+  pixelDistance: z.number().positive('Pixel distance must be positive'),
+  realDistance: z.number().positive('Real distance must be positive'),
+  unit: scaleUnitSchema,
+});
+
+export type UploadMapInput = z.infer<typeof uploadMapSchema>;
+export type UpdateMapInput = z.infer<typeof updateMapSchema>;
+export type CalibrateMapInput = z.infer<typeof calibrateMapSchema>;
+
+// ============================================
+// Pagination Query Schema (Reusable)
+// ============================================
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type PaginationQueryInput = z.output<typeof paginationQuerySchema>;

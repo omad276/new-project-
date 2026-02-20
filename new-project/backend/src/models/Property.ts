@@ -116,4 +116,13 @@ propertySchema.index({
   descriptionAr: 'text',
 });
 
+// Indexes for common query patterns
+propertySchema.index({ 'location.city': 1 });
+propertySchema.index({ price: 1 });
+propertySchema.index({ status: 1 });
+propertySchema.index({ type: 1 });
+propertySchema.index({ category: 1 });
+propertySchema.index({ isActive: 1, createdAt: -1 });
+propertySchema.index({ owner: 1, createdAt: -1 });
+
 export default mongoose.model('Property', propertySchema);

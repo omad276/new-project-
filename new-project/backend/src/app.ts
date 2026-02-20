@@ -7,6 +7,7 @@ import 'express-async-errors'; // Handle async errors automatically
 import { config } from './config/index.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/index.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 
 // ============================================
 // Create Express Application
@@ -77,6 +78,13 @@ if (config.isDevelopment) {
 
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
+
+// ============================================
+// Rate Limiting
+// ============================================
+
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
 
 // ============================================
 // API Routes

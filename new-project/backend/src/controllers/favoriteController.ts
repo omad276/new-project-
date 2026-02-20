@@ -1,6 +1,14 @@
 import { Response } from 'express';
 import * as favoriteService from '../services/favoriteService.js';
 import { AuthRequest, ApiResponse } from '../types/index.js';
+import {
+  validate,
+  addFavoriteSchema,
+  updateFavoriteNotesSchema,
+  moveToCollectionSchema,
+  createCollectionSchema,
+  updateCollectionSchema,
+} from '../utils/validation.js';
 
 // ============================================
 // Favorites Controller
@@ -16,6 +24,7 @@ export async function getFavorites(req: AuthRequest, res: Response<ApiResponse>)
   res.json({
     success: true,
     message: 'Favorites retrieved',
+    messageAr: 'تم استرجاع المفضلة',
     data: result,
   });
 }
@@ -25,13 +34,13 @@ export async function getFavorites(req: AuthRequest, res: Response<ApiResponse>)
  * Add a property to favorites
  */
 export async function addFavorite(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
-  const { propertyId, collectionId, notes } = req.body;
+  const data = validate(addFavoriteSchema, req.body);
 
   const favorites = await favoriteService.addToFavorites(
     req.user!.id,
-    propertyId,
-    collectionId,
-    notes
+    data.propertyId,
+    data.collectionId,
+    data.notes
   );
 
   res.status(201).json({
@@ -61,12 +70,12 @@ export async function removeFavorite(req: AuthRequest, res: Response<ApiResponse
  * Update notes for a favorite
  */
 export async function updateNotes(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
-  const { notes } = req.body;
+  const data = validate(updateFavoriteNotesSchema, req.body);
 
   const favorite = await favoriteService.updateFavoriteNotes(
     req.user!.id,
     req.params.propertyId,
-    notes
+    data.notes
   );
 
   res.json({
@@ -85,12 +94,12 @@ export async function moveToCollection(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const { collectionId } = req.body;
+  const data = validate(moveToCollectionSchema, req.body);
 
   const favorite = await favoriteService.moveToCollection(
     req.user!.id,
     req.params.propertyId,
-    collectionId
+    data.collectionId
   );
 
   res.json({
@@ -127,7 +136,8 @@ export async function createCollection(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const collection = await favoriteService.createCollection(req.user!.id, req.body);
+  const data = validate(createCollectionSchema, req.body);
+  const collection = await favoriteService.createCollection(req.user!.id, data);
 
   res.status(201).json({
     success: true,
@@ -145,10 +155,11 @@ export async function updateCollection(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
+  const data = validate(updateCollectionSchema, req.body);
   const collection = await favoriteService.updateCollection(
     req.user!.id,
     req.params.collectionId,
-    req.body
+    data
   );
 
   res.json({

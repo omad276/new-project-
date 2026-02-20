@@ -5,6 +5,11 @@ import { Project } from '../models/Project.js';
 import { AppError } from '../utils/AppError.js';
 import { PublicMap, IMapDocument, MapFileType, ScaleUnit } from '../types/index.js';
 import { getFileTypeFromExtension } from '../middleware/upload.js';
+import {
+  getPaginationParams,
+  buildPaginationResult,
+  PaginationResult,
+} from '../utils/pagination.js';
 
 // ============================================
 // Map Service
@@ -79,9 +84,13 @@ export async function uploadMap(input: UploadMapInput): Promise<PublicMap> {
 }
 
 /**
- * Get all maps for a project
+ * Get all maps for a project with pagination
  */
-export async function getProjectMaps(projectId: string, userId?: string): Promise<PublicMap[]> {
+export async function getProjectMaps(
+  projectId: string,
+  userId?: string,
+  options?: { page?: number; limit?: number }
+): Promise<PaginationResult<PublicMap>> {
   // Verify project exists
   const project = await Project.findById(projectId);
   if (!project) {
@@ -94,8 +103,19 @@ export async function getProjectMaps(projectId: string, userId?: string): Promis
     throw AppError.forbidden('You do not have access to this project');
   }
 
-  const maps = await Map.findByProject(projectId);
-  return maps.map((m: IMapDocument) => m.toPublicJSON());
+  const { page, limit, skip } = getPaginationParams(options || {});
+
+  const [maps, total] = await Promise.all([
+    Map.find({ project: projectId })
+      .populate('uploadedBy', 'id fullName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Map.countDocuments({ project: projectId }),
+  ]);
+
+  const data = maps.map((m: IMapDocument) => m.toPublicJSON());
+  return buildPaginationResult(data, total, page, limit);
 }
 
 /**

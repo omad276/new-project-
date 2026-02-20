@@ -1,7 +1,15 @@
 import { Response } from 'express';
 import { measurementService } from '../services/index.js';
 import { AuthRequest, ApiResponse } from '../types/index.js';
-import { AppError } from '../utils/AppError.js';
+import {
+  validate,
+  createMeasurementSchema,
+  updateMeasurementSchema,
+  createCostEstimateSchema,
+  updateCostEstimateSchema,
+  calculateFromMeasurementsSchema,
+  paginationQuerySchema,
+} from '../utils/validation.js';
 
 // ============================================
 // Measurement Controller
@@ -16,63 +24,65 @@ export async function createMeasurement(
   res: Response<ApiResponse>
 ): Promise<void> {
   const { mapId } = req.params;
-  const { name, type, points, unit, color, notes } = req.body;
-
-  if (!name || !type || !points) {
-    throw AppError.badRequest('Name, type, and points are required');
-  }
+  const data = validate(createMeasurementSchema, req.body);
 
   const measurement = await measurementService.createMeasurement({
     mapId,
     userId: req.user!.userId,
-    name,
-    type,
-    points,
-    unit,
-    color,
-    notes,
+    ...data,
   });
 
   res.status(201).json({
     success: true,
     message: 'Measurement created successfully',
+    messageAr: 'تم إنشاء القياس بنجاح',
     data: measurement,
   });
 }
 
 /**
  * GET /api/maps/:mapId/measurements
- * Get all measurements for a map
+ * Get all measurements for a map with pagination
  */
 export async function getMapMeasurements(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
   const { mapId } = req.params;
-  const measurements = await measurementService.getMapMeasurements(mapId, req.user?.userId);
+  const query = validate(paginationQuerySchema, req.query);
+  const result = await measurementService.getMapMeasurements(mapId, req.user?.userId, query);
 
   res.json({
     success: true,
     message: 'Measurements retrieved',
-    data: measurements,
+    messageAr: 'تم استرجاع القياسات',
+    data: result.data,
+    pagination: result.pagination,
   });
 }
 
 /**
  * GET /api/projects/:projectId/measurements
- * Get all measurements for a project
+ * Get all measurements for a project with pagination
  */
 export async function getProjectMeasurements(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
   const { projectId } = req.params;
-  const measurements = await measurementService.getProjectMeasurements(projectId, req.user?.userId);
+  const query = validate(paginationQuerySchema, req.query);
+  const result = await measurementService.getProjectMeasurements(
+    projectId,
+    req.user?.userId,
+    query
+  );
 
   res.json({
     success: true,
     message: 'Measurements retrieved',
-    data: measurements,
+    messageAr: 'تم استرجاع القياسات',
+    data: result.data,
+    pagination: result.pagination,
   });
 }
 
@@ -90,6 +100,7 @@ export async function getMeasurementTotals(
   res.json({
     success: true,
     message: 'Measurement totals retrieved',
+    messageAr: 'تم استرجاع إجماليات القياسات',
     data: totals,
   });
 }
@@ -104,6 +115,7 @@ export async function getMeasurement(req: AuthRequest, res: Response<ApiResponse
   res.json({
     success: true,
     message: 'Measurement retrieved',
+    messageAr: 'تم استرجاع القياس',
     data: measurement,
   });
 }
@@ -116,17 +128,18 @@ export async function updateMeasurement(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const { name, color, notes } = req.body;
+  const data = validate(updateMeasurementSchema, req.body);
 
-  const measurement = await measurementService.updateMeasurement(req.params.id, req.user!.userId, {
-    name,
-    color,
-    notes,
-  });
+  const measurement = await measurementService.updateMeasurement(
+    req.params.id,
+    req.user!.userId,
+    data
+  );
 
   res.json({
     success: true,
     message: 'Measurement updated successfully',
+    messageAr: 'تم تحديث القياس بنجاح',
     data: measurement,
   });
 }
@@ -145,6 +158,7 @@ export async function deleteMeasurement(
   res.json({
     success: true,
     message: 'Measurement deleted successfully',
+    messageAr: 'تم حذف القياس بنجاح',
   });
 }
 
@@ -161,47 +175,40 @@ export async function createCostEstimate(
   res: Response<ApiResponse>
 ): Promise<void> {
   const { projectId } = req.params;
-  const { name, description, mapId, measurementIds, items, taxRate, currency, notes } = req.body;
-
-  if (!name || !items || !Array.isArray(items)) {
-    throw AppError.badRequest('Name and items are required');
-  }
+  const data = validate(createCostEstimateSchema, req.body);
 
   const estimate = await measurementService.createCostEstimate({
     projectId,
     userId: req.user!.userId,
-    name,
-    description,
-    mapId,
-    measurementIds,
-    items,
-    taxRate,
-    currency,
-    notes,
+    ...data,
   });
 
   res.status(201).json({
     success: true,
     message: 'Cost estimate created successfully',
+    messageAr: 'تم إنشاء تقدير التكلفة بنجاح',
     data: estimate,
   });
 }
 
 /**
  * GET /api/projects/:projectId/estimates
- * Get all cost estimates for a project
+ * Get all cost estimates for a project with pagination
  */
 export async function getProjectEstimates(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
   const { projectId } = req.params;
-  const estimates = await measurementService.getProjectEstimates(projectId, req.user?.userId);
+  const query = validate(paginationQuerySchema, req.query);
+  const result = await measurementService.getProjectEstimates(projectId, req.user?.userId, query);
 
   res.json({
     success: true,
     message: 'Cost estimates retrieved',
-    data: estimates,
+    messageAr: 'تم استرجاع تقديرات التكلفة',
+    data: result.data,
+    pagination: result.pagination,
   });
 }
 
@@ -219,6 +226,7 @@ export async function getProjectCostSummary(
   res.json({
     success: true,
     message: 'Cost summary retrieved',
+    messageAr: 'تم استرجاع ملخص التكلفة',
     data: summary,
   });
 }
@@ -233,6 +241,7 @@ export async function getCostEstimate(req: AuthRequest, res: Response<ApiRespons
   res.json({
     success: true,
     message: 'Cost estimate retrieved',
+    messageAr: 'تم استرجاع تقدير التكلفة',
     data: estimate,
   });
 }
@@ -245,19 +254,18 @@ export async function updateCostEstimate(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const { name, description, items, taxRate, notes } = req.body;
+  const data = validate(updateCostEstimateSchema, req.body);
 
-  const estimate = await measurementService.updateCostEstimate(req.params.id, req.user!.userId, {
-    name,
-    description,
-    items,
-    taxRate,
-    notes,
-  });
+  const estimate = await measurementService.updateCostEstimate(
+    req.params.id,
+    req.user!.userId,
+    data
+  );
 
   res.json({
     success: true,
     message: 'Cost estimate updated successfully',
+    messageAr: 'تم تحديث تقدير التكلفة بنجاح',
     data: estimate,
   });
 }
@@ -276,6 +284,7 @@ export async function deleteCostEstimate(
   res.json({
     success: true,
     message: 'Cost estimate deleted successfully',
+    messageAr: 'تم حذف تقدير التكلفة بنجاح',
   });
 }
 
@@ -287,17 +296,17 @@ export async function calculateFromMeasurements(
   req: AuthRequest,
   res: Response<ApiResponse>
 ): Promise<void> {
-  const { measurementIds, unitCosts } = req.body;
+  const data = validate(calculateFromMeasurementsSchema, req.body);
 
-  if (!measurementIds || !unitCosts) {
-    throw AppError.badRequest('measurementIds and unitCosts are required');
-  }
-
-  const items = await measurementService.calculateCostFromMeasurements(measurementIds, unitCosts);
+  const items = await measurementService.calculateCostFromMeasurements(
+    data.measurementIds,
+    data.unitCosts
+  );
 
   res.json({
     success: true,
     message: 'Costs calculated',
+    messageAr: 'تم حساب التكاليف',
     data: { items, total: items.reduce((sum, item) => sum + item.totalCost, 0) },
   });
 }

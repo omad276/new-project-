@@ -111,6 +111,8 @@ export interface ApiResponse<T = unknown> {
     limit: number;
     total: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }
 
@@ -127,6 +129,8 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     limit: number;
     total: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }
 
@@ -333,12 +337,15 @@ export type PublicMeasurement = Omit<IMeasurement, 'map' | 'project' | 'createdB
 
 export type CostCategory = 'material' | 'labor' | 'equipment' | 'overhead' | 'other';
 
-export interface CostItem {
+export interface CostItemInput {
   name: string;
   category: CostCategory;
   unitCost: number;
   unit: string;
   quantity: number;
+}
+
+export interface CostItem extends CostItemInput {
   totalCost: number;
 }
 

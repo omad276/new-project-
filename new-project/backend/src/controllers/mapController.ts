@@ -3,6 +3,7 @@ import path from 'path';
 import { mapService } from '../services/index.js';
 import { AuthRequest, ApiResponse } from '../types/index.js';
 import { AppError } from '../utils/AppError.js';
+import { validate, paginationQuerySchema } from '../utils/validation.js';
 
 // ============================================
 // Map Controller
@@ -41,16 +42,19 @@ export async function uploadMap(req: AuthRequest, res: Response<ApiResponse>): P
 
 /**
  * GET /api/projects/:projectId/maps
- * Get all maps for a project
+ * Get all maps for a project with pagination
  */
 export async function getProjectMaps(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
   const { projectId } = req.params;
-  const maps = await mapService.getProjectMaps(projectId, req.user?.userId);
+  const query = validate(paginationQuerySchema, req.query);
+  const result = await mapService.getProjectMaps(projectId, req.user?.userId, query);
 
   res.json({
     success: true,
     message: 'Maps retrieved',
-    data: maps,
+    messageAr: 'تم استرجاع الخرائط',
+    data: result.data,
+    pagination: result.pagination,
   });
 }
 

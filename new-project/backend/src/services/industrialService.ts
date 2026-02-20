@@ -194,6 +194,8 @@ export async function listIndustrial(options: {
     limit: number;
     total: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }> {
   const page = options.page || 1;
@@ -251,13 +253,16 @@ export async function listIndustrial(options: {
     Industrial.countDocuments(query),
   ]);
 
+  const totalPages = Math.ceil(total / limit);
   return {
     data: industrials.map((ind: IIndustrialDocument) => ind.toPublicJSON()),
     pagination: {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
     },
   };
 }
