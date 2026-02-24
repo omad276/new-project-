@@ -28,6 +28,7 @@ export async function register(req: AuthRequest, res: Response<ApiResponse>): Pr
   res.status(201).json({
     success: true,
     message: 'Registration successful',
+    messageAr: 'تم التسجيل بنجاح',
     data: result,
   });
 }
@@ -43,6 +44,7 @@ export async function login(req: AuthRequest, res: Response<ApiResponse>): Promi
   res.json({
     success: true,
     message: 'Login successful',
+    messageAr: 'تم تسجيل الدخول بنجاح',
     data: result,
   });
 }
@@ -58,6 +60,7 @@ export async function refresh(req: AuthRequest, res: Response<ApiResponse>): Pro
   res.json({
     success: true,
     message: 'Tokens refreshed',
+    messageAr: 'تم تحديث الرموز',
     data: tokens,
   });
 }
@@ -75,6 +78,7 @@ export async function logout(_req: AuthRequest, res: Response<ApiResponse>): Pro
   res.json({
     success: true,
     message: 'Logout successful',
+    messageAr: 'تم تسجيل الخروج بنجاح',
   });
 }
 
@@ -88,6 +92,7 @@ export async function getProfile(req: AuthRequest, res: Response<ApiResponse>): 
   res.json({
     success: true,
     message: 'Profile retrieved',
+    messageAr: 'تم استرجاع الملف الشخصي',
     data: user,
   });
 }
@@ -103,6 +108,7 @@ export async function updateProfile(req: AuthRequest, res: Response<ApiResponse>
   res.json({
     success: true,
     message: 'Profile updated',
+    messageAr: 'تم تحديث الملف الشخصي',
     data: user,
   });
 }
@@ -118,6 +124,7 @@ export async function changePassword(req: AuthRequest, res: Response<ApiResponse
   res.json({
     success: true,
     message: 'Password changed successfully',
+    messageAr: 'تم تغيير كلمة المرور بنجاح',
   });
 }
 
@@ -134,5 +141,6 @@ export async function deactivateAccount(
   res.json({
     success: true,
     message: 'Account deactivated',
+    messageAr: 'تم تعطيل الحساب',
   });
 }

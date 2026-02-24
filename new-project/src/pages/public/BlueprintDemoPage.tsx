@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { BlueprintViewer } from '@/components/BlueprintViewer';
 import { Button } from '@/components/ui/Button';
 import { Upload, FileImage, FileText } from 'lucide-react';
+import type { Measurement, MeasurementType } from '@/types';
 
-interface Measurement {
+// Demo measurement type (subset of full Measurement)
+interface DemoMeasurement {
   id: string;
-  type: 'distance' | 'area' | 'angle';
+  type: MeasurementType;
   points: { x: number; y: number }[];
   value: number;
   unit: string;
@@ -15,12 +17,12 @@ interface Measurement {
 }
 
 export function BlueprintDemoPage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
 
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
-  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [measurements, setMeasurements] = useState<DemoMeasurement[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,8 +39,8 @@ export function BlueprintDemoPage() {
     }
   };
 
-  const handleMeasurementCreate = (measurement: Omit<Measurement, 'id'>) => {
-    const newMeasurement: Measurement = {
+  const handleMeasurementCreate = (measurement: Omit<Measurement, 'id' | 'mapId' | 'createdAt' | 'updatedAt'>) => {
+    const newMeasurement: DemoMeasurement = {
       ...measurement,
       id: `m-${Date.now()}`,
     };
@@ -47,6 +49,11 @@ export function BlueprintDemoPage() {
 
   const handleMeasurementDelete = (id: string) => {
     setMeasurements((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  // Restore measurement for undo support
+  const handleMeasurementRestore = (measurement: Measurement) => {
+    setMeasurements((prev) => [...prev, measurement as DemoMeasurement]);
   };
 
   // Sample images for quick testing
@@ -128,12 +135,17 @@ export function BlueprintDemoPage() {
             <BlueprintViewer
               src={fileUrl}
               alt={fileName}
-              measurements={measurements}
+              measurements={measurements as Measurement[]}
               onMeasurementCreate={handleMeasurementCreate}
               onMeasurementDelete={handleMeasurementDelete}
+              onMeasurementRestore={handleMeasurementRestore}
               showMeasurements={true}
               editable={true}
               className="h-[600px]"
+              projectId="demo-project"
+              projectName={fileName || 'Demo Blueprint'}
+              showAnalytics={true}
+              showExport={true}
             />
           </div>
         ) : (
@@ -162,7 +174,7 @@ export function BlueprintDemoPage() {
           <h2 className="text-xl font-semibold mb-4">
             {isArabic ? 'كيفية الاستخدام' : 'How to Use'}
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             <div>
               <h3 className="font-medium mb-2">
                 {isArabic ? 'أدوات التنقل' : 'Navigation Tools'}
@@ -171,7 +183,7 @@ export function BlueprintDemoPage() {
                 <li>{isArabic ? '• استخدم عجلة الماوس للتكبير/التصغير' : '• Use mouse wheel to zoom in/out'}</li>
                 <li>{isArabic ? '• اسحب للتحريك في وضع التحريك' : '• Drag to pan in pan mode'}</li>
                 <li>{isArabic ? '• انقر على زر التدوير للتدوير 90 درجة' : '• Click rotate button to rotate 90°'}</li>
-                <li>{isArabic ? '• انقر على زر التوسيط لإعادة العرض' : '• Click center button to reset view'}</li>
+                <li>{isArabic ? '• Ctrl+Z للتراجع، Ctrl+Y للإعادة' : '• Ctrl+Z to undo, Ctrl+Y to redo'}</li>
               </ul>
             </div>
             <div>
@@ -181,8 +193,19 @@ export function BlueprintDemoPage() {
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>{isArabic ? '• المسطرة: انقر نقطتين لقياس المسافة' : '• Ruler: Click two points to measure distance'}</li>
                 <li>{isArabic ? '• المربع: انقر عدة نقاط، انقر مزدوج للإنهاء' : '• Square: Click multiple points, double-click to finish'}</li>
-                <li>{isArabic ? '• يمكنك إخفاء/إظهار القياسات من اللوحة' : '• You can hide/show measurements from the panel'}</li>
-                <li>{isArabic ? '• انقر على سلة المهملات لحذف قياس' : '• Click trash icon to delete a measurement'}</li>
+                <li>{isArabic ? '• استخدم الشبكة للالتقاط الدقيق' : '• Use grid snap for precise alignment'}</li>
+                <li>{isArabic ? '• تصفية حسب النوع من لوحة القياسات' : '• Filter by type from measurements panel'}</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">
+                {isArabic ? 'التصدير والتحليلات' : 'Export & Analytics'}
+              </h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>{isArabic ? '• تصدير إلى PDF أو Excel' : '• Export to PDF or Excel'}</li>
+                <li>{isArabic ? '• عرض الإجماليات والتحليلات' : '• View totals and analytics'}</li>
+                <li>{isArabic ? '• حساب تقديرات التكلفة' : '• Calculate cost estimates'}</li>
+                <li>{isArabic ? '• تتبع الجدول الزمني للقياسات' : '• Track measurement timeline'}</li>
               </ul>
             </div>
           </div>

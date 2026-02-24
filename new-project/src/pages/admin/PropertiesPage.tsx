@@ -17,8 +17,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { getPropertyStats, PropertyStats } from '@/services/adminService';
-import { api } from '@/services/api';
+import { getPropertyStats } from '@/services/adminService';
+import type { PropertyStats } from '@/services/adminService';
+import { api } from '@/lib/api';
 
 interface Property {
   id: string;

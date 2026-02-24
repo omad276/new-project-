@@ -23,6 +23,7 @@ export async function createProject(req: AuthRequest, res: Response<ApiResponse>
   res.status(201).json({
     success: true,
     message: 'Project created successfully',
+    messageAr: 'تم إنشاء المشروع بنجاح',
     data: project,
   });
 }
@@ -38,6 +39,7 @@ export async function getProjects(req: AuthRequest, res: Response<ApiResponse>):
   res.json({
     success: true,
     message: 'Projects retrieved',
+    messageAr: 'تم استرجاع المشاريع',
     data: result.projects,
     pagination: result.pagination,
   } as ApiResponse & { pagination: unknown });
@@ -53,6 +55,7 @@ export async function getMyProjects(req: AuthRequest, res: Response<ApiResponse>
   res.json({
     success: true,
     message: 'Your projects retrieved',
+    messageAr: 'تم استرجاع مشاريعك',
     data: projects,
   });
 }
@@ -67,6 +70,7 @@ export async function getMyStats(req: AuthRequest, res: Response<ApiResponse>): 
   res.json({
     success: true,
     message: 'Statistics retrieved',
+    messageAr: 'تم استرجاع الإحصائيات',
     data: stats,
   });
 }
@@ -81,6 +85,7 @@ export async function getProject(req: AuthRequest, res: Response<ApiResponse>): 
   res.json({
     success: true,
     message: 'Project retrieved',
+    messageAr: 'تم استرجاع المشروع',
     data: project,
   });
 }
@@ -96,6 +101,7 @@ export async function updateProject(req: AuthRequest, res: Response<ApiResponse>
   res.json({
     success: true,
     message: 'Project updated successfully',
+    messageAr: 'تم تحديث المشروع بنجاح',
     data: project,
   });
 }
@@ -111,6 +117,7 @@ export async function deleteProject(req: AuthRequest, res: Response<ApiResponse>
   res.json({
     success: true,
     message: 'Project deleted successfully',
+    messageAr: 'تم حذف المشروع بنجاح',
   });
 }
 
@@ -127,6 +134,7 @@ export async function recalculateScore(
   res.json({
     success: true,
     message: 'Score recalculated',
+    messageAr: 'تم إعادة حساب النتيجة',
     data: project,
   });
 }

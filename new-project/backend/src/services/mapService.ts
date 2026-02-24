@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import { Map } from '../models/Map.js';
 import { Measurement } from '../models/Measurement.js';
+import { CostEstimate } from '../models/CostEstimate.js';
 import { Project } from '../models/Project.js';
 import { AppError } from '../utils/AppError.js';
 import { PublicMap, IMapDocument, MapFileType, ScaleUnit } from '../types/index.js';
@@ -236,6 +237,28 @@ export async function deleteMap(
     throw AppError.forbidden('You can only delete maps from your own projects');
   }
 
+  // Get measurement IDs before deleting (for CostEstimate cleanup)
+  const measurementIds = await Measurement.find({ map: mapId }).distinct('_id');
+
+  // Delete all measurements associated with this map
+  const deletedMeasurements = await Measurement.deleteMany({ map: mapId });
+  if (deletedMeasurements.deletedCount > 0) {
+    console.log(
+      `Cascade deleted ${deletedMeasurements.deletedCount} measurements for map ${mapId}`
+    );
+  }
+
+  // Clean up CostEstimate references
+  if (measurementIds.length > 0) {
+    // Remove deleted measurement references from cost estimates
+    await CostEstimate.updateMany(
+      { measurements: { $in: measurementIds } },
+      { $pull: { measurements: { $in: measurementIds } } }
+    );
+  }
+  // Clear map reference from cost estimates that referenced this map
+  await CostEstimate.updateMany({ map: mapId }, { $unset: { map: 1 } });
+
   // Delete file from storage
   try {
     await fs.unlink(map.storagePath);
@@ -320,11 +343,25 @@ export async function calibrateMap(
 /**
  * Get map statistics for a project
  */
-export async function getMapStats(projectId: string): Promise<{
+export async function getMapStats(
+  projectId: string,
+  userId?: string
+): Promise<{
   totalMaps: number;
   totalSize: number;
   byType: Record<MapFileType, number>;
 }> {
+  // Verify project access
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this project');
+  }
+
   const maps = await Map.find({ project: projectId });
 
   const stats = {

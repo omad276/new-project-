@@ -347,3 +347,115 @@ export interface Collection {
 
 // Re-export for compatibility
 export type { Collection as FavoriteCollection };
+
+// ============================================
+// Undo/Redo Command Types
+// ============================================
+
+export type CommandType = 'CREATE_MEASUREMENT' | 'DELETE_MEASUREMENT' | 'UPDATE_MEASUREMENT';
+
+export interface Command {
+  id: string;
+  type: CommandType;
+  execute: () => void;
+  undo: () => void;
+  description: string;
+  timestamp: number;
+}
+
+export interface UndoRedoState {
+  past: Command[];
+  future: Command[];
+  maxHistorySize: number;
+}
+
+// ============================================
+// Snapping Configuration Types
+// ============================================
+
+export interface SnapConfig {
+  gridEnabled: boolean;
+  gridSize: number; // Grid size in pixels
+  pointSnapEnabled: boolean;
+  snapRadius: number; // Snap radius in pixels
+  showGrid: boolean;
+}
+
+export const DEFAULT_SNAP_CONFIG: SnapConfig = {
+  gridEnabled: false,
+  gridSize: 20,
+  pointSnapEnabled: true,
+  snapRadius: 10,
+  showGrid: false,
+};
+
+// ============================================
+// Export Types
+// ============================================
+
+export type ExportFormat = 'pdf' | 'excel';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  includeCosts: boolean;
+  includeTimeline: boolean;
+  includeTotals: boolean;
+  language: 'en' | 'ar';
+  projectLogo?: string;
+}
+
+export interface MeasurementExportData {
+  projectId: string;
+  projectName: string;
+  projectLogo?: string;
+  measurements: Measurement[];
+  totals: Record<MeasurementType, number>;
+  counts: Record<MeasurementType, number>;
+  costEstimate?: CostEstimateData;
+  generatedAt: Date;
+}
+
+export interface CostItem {
+  name: string;
+  category: 'material' | 'labor' | 'equipment' | 'overhead' | 'other';
+  unitCost: number;
+  quantity: number;
+  unit: string;
+  totalCost: number;
+}
+
+export interface CostEstimateData {
+  items: CostItem[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  grandTotal: number;
+  currency: string;
+}
+
+// ============================================
+// Analytics Types
+// ============================================
+
+export interface MeasurementAnalytics {
+  totals: Record<MeasurementType, number>;
+  counts: Record<MeasurementType, number>;
+  timeline: TimelineDataPoint[];
+  costSummary?: CostEstimateData;
+}
+
+export interface TimelineDataPoint {
+  date: string;
+  count: number;
+  totalArea: number;
+  totalVolume: number;
+  totalDistance: number;
+}
+
+export interface UnitCostConfig {
+  area: number;
+  volume: number;
+  distance: number;
+  perimeter: number;
+  angle: number;
+}

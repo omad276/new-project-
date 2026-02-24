@@ -1,4 +1,4 @@
-import { api } from './api';
+import api from '@/lib/api';
 
 // Types
 export interface User {
@@ -58,6 +58,17 @@ export interface UsersQueryParams {
   q?: string;
 }
 
+// Property Admin Types
+export interface PropertyStats {
+  totalProperties: number;
+  forSale: number;
+  forRent: number;
+  featured: number;
+  byType: Record<string, number>;
+  byCategory: Record<string, number>;
+  byCity: Record<string, number>;
+}
+
 // API Functions
 export async function getUsers(params: UsersQueryParams = {}): Promise<UsersResponse> {
   const searchParams = new URLSearchParams();
@@ -72,45 +83,34 @@ export async function getUsers(params: UsersQueryParams = {}): Promise<UsersResp
   const queryString = searchParams.toString();
   const url = queryString ? `/users?${queryString}` : '/users';
 
-  const response = await api.get(url);
-  return response.data;
+  const response = await api.get<UsersResponse>(url);
+  return response.data!;
 }
 
 export async function getUserStats(): Promise<UserStatsResponse> {
-  const response = await api.get('/users/stats');
-  return response.data;
+  const response = await api.get<UserStatsResponse>('/users/stats');
+  return response.data!;
 }
 
 export async function getUser(id: string): Promise<{ success: boolean; data: User }> {
-  const response = await api.get(`/users/${id}`);
-  return response.data;
+  const response = await api.get<{ success: boolean; data: User }>(`/users/${id}`);
+  return response.data!;
 }
 
 export async function updateUser(
   id: string,
   data: UpdateUserData
 ): Promise<{ success: boolean; data: User }> {
-  const response = await api.patch(`/users/${id}`, data);
-  return response.data;
+  const response = await api.patch<{ success: boolean; data: User }>(`/users/${id}`, data);
+  return response.data!;
 }
 
 export async function deactivateUser(id: string): Promise<{ success: boolean; message: string }> {
-  const response = await api.delete(`/users/${id}`);
-  return response.data;
-}
-
-// Property Admin Functions
-export interface PropertyStats {
-  totalProperties: number;
-  forSale: number;
-  forRent: number;
-  featured: number;
-  byType: Record<string, number>;
-  byCategory: Record<string, number>;
-  byCity: Record<string, number>;
+  const response = await api.delete<{ success: boolean; message: string }>(`/users/${id}`);
+  return response.data!;
 }
 
 export async function getPropertyStats(): Promise<{ success: boolean; data: PropertyStats }> {
-  const response = await api.get('/properties/stats');
-  return response.data;
+  const response = await api.get<{ success: boolean; data: PropertyStats }>('/properties/stats');
+  return response.data!;
 }

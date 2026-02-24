@@ -20,10 +20,8 @@ import {
   getUserStats,
   updateUser,
   deactivateUser,
-  User,
-  UserStats,
-  UsersQueryParams,
 } from '@/services/adminService';
+import type { User, UserStats, UsersQueryParams } from '@/services/adminService';
 
 function UsersPage() {
   const { i18n } = useTranslation();

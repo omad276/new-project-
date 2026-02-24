@@ -122,7 +122,9 @@ function transformProperty(apiProp: ApiProperty): Property {
       cityAr: apiProp.location.cityAr,
       country: apiProp.location.country,
       countryAr: apiProp.location.countryAr,
-      coordinates: apiProp.location.coordinates || { type: 'Point', coordinates: [0, 0] },
+      coordinates: apiProp.location.coordinates
+        ? { type: 'Point' as const, coordinates: apiProp.location.coordinates.coordinates }
+        : { type: 'Point' as const, coordinates: [0, 0] as [number, number] },
     },
     images: apiProp.images,
     features: apiProp.features || [],
@@ -180,7 +182,7 @@ export const propertyService = {
     const response = await api.get<ApiProperty[]>(`/properties/featured?limit=${limit}`);
     return {
       ...response,
-      data: response.data ? response.data.map(transformProperty) : undefined,
+      data: (response.data || []).map(transformProperty),
     };
   },
 
@@ -191,7 +193,7 @@ export const propertyService = {
     const response = await api.get<ApiProperty>(`/properties/${id}`);
     return {
       ...response,
-      data: response.data ? transformProperty(response.data) : undefined,
+      data: transformProperty(response.data!),
     };
   },
 
@@ -202,7 +204,7 @@ export const propertyService = {
     const response = await api.get<ApiProperty[]>('/properties/my');
     return {
       ...response,
-      data: response.data ? response.data.map(transformProperty) : undefined,
+      data: (response.data || []).map(transformProperty),
     };
   },
 
@@ -210,7 +212,11 @@ export const propertyService = {
    * Get property statistics
    */
   async getStats(): Promise<ApiResponse<PropertyStats>> {
-    return api.get<PropertyStats>('/properties/stats');
+    const response = await api.get<PropertyStats>('/properties/stats');
+    return {
+      ...response,
+      data: response.data!,
+    };
   },
 
   /**
@@ -220,7 +226,7 @@ export const propertyService = {
     const response = await api.post<ApiProperty>('/properties', data);
     return {
       ...response,
-      data: response.data ? transformProperty(response.data) : undefined,
+      data: transformProperty(response.data!),
     };
   },
 
@@ -234,7 +240,7 @@ export const propertyService = {
     const response = await api.patch<ApiProperty>(`/properties/${id}`, data);
     return {
       ...response,
-      data: response.data ? transformProperty(response.data) : undefined,
+      data: transformProperty(response.data!),
     };
   },
 
@@ -242,7 +248,11 @@ export const propertyService = {
    * Delete a property
    */
   async deleteProperty(id: string): Promise<ApiResponse<void>> {
-    return api.delete(`/properties/${id}`);
+    const response = await api.delete(`/properties/${id}`);
+    return {
+      ...response,
+      data: undefined as unknown as void,
+    };
   },
 };
 

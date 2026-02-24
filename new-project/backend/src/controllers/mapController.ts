@@ -36,6 +36,7 @@ export async function uploadMap(req: AuthRequest, res: Response<ApiResponse>): P
   res.status(201).json({
     success: true,
     message: 'Map uploaded successfully',
+    messageAr: 'تم رفع الخريطة بنجاح',
     data: map,
   });
 }
@@ -68,6 +69,7 @@ export async function getMap(req: AuthRequest, res: Response<ApiResponse>): Prom
   res.json({
     success: true,
     message: 'Map retrieved',
+    messageAr: 'تم استرجاع الخريطة',
     data: map,
   });
 }
@@ -103,6 +105,7 @@ export async function updateMap(req: AuthRequest, res: Response<ApiResponse>): P
   res.json({
     success: true,
     message: 'Map updated successfully',
+    messageAr: 'تم تحديث الخريطة بنجاح',
     data: map,
   });
 }
@@ -118,6 +121,7 @@ export async function deleteMap(req: AuthRequest, res: Response<ApiResponse>): P
   res.json({
     success: true,
     message: 'Map deleted successfully',
+    messageAr: 'تم حذف الخريطة بنجاح',
   });
 }
 
@@ -127,11 +131,12 @@ export async function deleteMap(req: AuthRequest, res: Response<ApiResponse>): P
  */
 export async function getMapStats(req: AuthRequest, res: Response<ApiResponse>): Promise<void> {
   const { projectId } = req.params;
-  const stats = await mapService.getMapStats(projectId);
+  const stats = await mapService.getMapStats(projectId, req.user?.userId);
 
   res.json({
     success: true,
     message: 'Map statistics retrieved',
+    messageAr: 'تم استرجاع إحصائيات الخرائط',
     data: stats,
   });
 }
@@ -166,9 +171,15 @@ export async function calibrateMap(req: AuthRequest, res: Response<ApiResponse>)
       ? `Map recalibrated successfully. ${result.deletedMeasurements} measurement(s) deleted.`
       : 'Map calibrated successfully';
 
+  const messageAr =
+    'deletedMeasurements' in result && result.deletedMeasurements
+      ? `تمت إعادة معايرة الخريطة بنجاح. تم حذف ${result.deletedMeasurements} قياس(ات).`
+      : 'تمت معايرة الخريطة بنجاح';
+
   res.json({
     success: true,
     message,
+    messageAr,
     data: result,
   });
 }

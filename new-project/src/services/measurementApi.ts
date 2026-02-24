@@ -1,5 +1,45 @@
 import api from '@/lib/api';
-import type { Measurement, CreateMeasurementPayload, MeasurementType } from '@/types';
+import type {
+  Measurement,
+  CreateMeasurementPayload,
+  MeasurementType,
+  CostItem,
+  CostEstimateData,
+} from '@/types';
+
+// Cost estimate interface from backend
+interface BackendCostEstimate {
+  id: string;
+  project: string;
+  map?: string;
+  name: string;
+  description?: string;
+  measurements: string[];
+  items: CostItem[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+  currency: string;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Cost summary from backend
+interface CostSummary {
+  totalEstimates: number;
+  grandTotal: number;
+  byCategory: Record<string, number>;
+  currency: string;
+}
+
+// Measurement totals with counts
+interface MeasurementTotals {
+  totals: Record<MeasurementType, number>;
+  counts: Record<MeasurementType, number>;
+}
 
 // Backend measurement type
 interface BackendMeasurement {
@@ -106,12 +146,86 @@ export const measurementApi = {
   },
 
   // Get measurement totals for a project
-  async getMeasurementTotals(projectId: string): Promise<Record<string, number>> {
-    const response = await api.get<Record<string, number>>(
-      `/projects/${projectId}/measurements/totals`
-    );
+  async getMeasurementTotals(projectId: string): Promise<MeasurementTotals> {
+    const response = await api.get<MeasurementTotals>(`/projects/${projectId}/measurements/totals`);
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Failed to fetch measurement totals');
+    }
+    return response.data;
+  },
+
+  // =====================
+  // Cost Estimate Methods
+  // =====================
+
+  // Get cost summary for a project
+  async getCostSummary(projectId: string): Promise<CostSummary> {
+    const response = await api.get<CostSummary>(`/projects/${projectId}/estimates/summary`);
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Failed to fetch cost summary');
+    }
+    return response.data;
+  },
+
+  // Get all cost estimates for a project
+  async getProjectEstimates(projectId: string): Promise<CostEstimateData[]> {
+    const response = await api.get<BackendCostEstimate[]>(`/projects/${projectId}/estimates`);
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Failed to fetch cost estimates');
+    }
+    return response.data.map((e) => ({
+      items: e.items,
+      subtotal: e.subtotal,
+      taxRate: e.taxRate,
+      taxAmount: e.taxAmount,
+      grandTotal: e.total,
+      currency: e.currency,
+    }));
+  },
+
+  // Create a cost estimate
+  async createCostEstimate(
+    projectId: string,
+    payload: {
+      name: string;
+      description?: string;
+      measurementIds?: string[];
+      items: CostItem[];
+      taxRate?: number;
+      currency?: string;
+      notes?: string;
+    }
+  ): Promise<CostEstimateData> {
+    const response = await api.post<BackendCostEstimate>(
+      `/projects/${projectId}/estimates`,
+      payload
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Failed to create cost estimate');
+    }
+    const e = response.data;
+    return {
+      items: e.items,
+      subtotal: e.subtotal,
+      taxRate: e.taxRate,
+      taxAmount: e.taxAmount,
+      grandTotal: e.total,
+      currency: e.currency,
+    };
+  },
+
+  // Calculate costs from measurements with unit costs
+  async calculateCosts(
+    projectId: string,
+    measurementIds: string[],
+    unitCosts: { type: MeasurementType; costPerUnit: number; unit: string }[]
+  ): Promise<{ items: CostItem[]; total: number }> {
+    const response = await api.post<{ items: CostItem[]; total: number }>(
+      `/projects/${projectId}/calculate`,
+      { measurementIds, unitCosts }
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Failed to calculate costs');
     }
     return response.data;
   },

@@ -21,9 +21,25 @@ import {
   Scale,
   X,
   Triangle,
+  Box,
+  AlertTriangle,
+  Undo2,
+  Redo2,
+  Grid3X3,
+  Magnet,
+  Download,
+  BarChart3,
+  Filter,
+  DollarSign,
 } from 'lucide-react';
-import type { MapScale, ScaleUnit } from '@/types';
+import type { MapScale, ScaleUnit, Point, MeasurementType, Measurement, SnapConfig, CostEstimateData } from '@/types';
+import { useUndoRedo, createCommand } from '@/hooks/useUndoRedo';
+import { applySnapping, drawGrid, drawSnapIndicator } from '@/lib/snapping';
+import { useThrottledCallback, drawTooltip, formatMeasurementValue } from '@/lib/canvasUtils';
 import { Button } from '@/components/ui/Button';
+import { ExportToolbar } from './blueprint/ExportToolbar';
+import { AnalyticsPanel } from './blueprint/AnalyticsPanel';
+import { CostEstimatorModal } from './blueprint/CostEstimatorModal';
 
 // Set up PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -32,38 +48,28 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 // Types
 // ============================================
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-type MeasurementType = 'distance' | 'area' | 'angle' | 'volume' | 'perimeter';
-
-interface Measurement {
-  id: string;
-  type: MeasurementType;
-  points: Point[];
-  value: number;
-  unit: string;
-  color: string;
-  name: string;
-}
-
 interface BlueprintViewerProps {
   src: string;
   alt?: string;
   measurements?: Measurement[];
-  onMeasurementCreate?: (measurement: Omit<Measurement, 'id'>) => void;
+  onMeasurementCreate?: (measurement: Omit<Measurement, 'id' | 'mapId' | 'createdAt' | 'updatedAt'>) => void;
   onMeasurementDelete?: (id: string) => void;
+  onMeasurementRestore?: (measurement: Measurement) => void;
   showMeasurements?: boolean;
   editable?: boolean;
   className?: string;
   mapScale?: MapScale;
   isCalibrated?: boolean;
   onCalibrate?: (data: { pixelDistance: number; realDistance: number; unit: ScaleUnit }) => void;
+  // New props for enhanced features
+  projectId?: string;
+  projectName?: string;
+  projectLogo?: string;
+  showAnalytics?: boolean;
+  showExport?: boolean;
 }
 
-type Tool = 'pan' | 'distance' | 'area' | 'angle' | 'calibrate';
+type Tool = 'pan' | 'distance' | 'area' | 'angle' | 'volume' | 'perimeter' | 'calibrate';
 
 // ============================================
 // Component
@@ -75,12 +81,18 @@ export function BlueprintViewer({
   measurements = [],
   onMeasurementCreate,
   onMeasurementDelete,
+  onMeasurementRestore,
   showMeasurements = true,
   editable = false,
   className = '',
   mapScale,
   isCalibrated = false,
   onCalibrate,
+  projectId,
+  projectName = 'Blueprint Project',
+  projectLogo,
+  showAnalytics = true,
+  showExport = true,
 }: BlueprintViewerProps) {
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
@@ -123,6 +135,56 @@ export function BlueprintViewer({
   const [calibrationError, setCalibrationError] = useState<string | null>(null);
   const [calibrationSuccess, setCalibrationSuccess] = useState(false);
 
+  // CAD file state
+  const [isCad, setIsCad] = useState(false);
+
+  // Volume tool state
+  const [showVolumeHeightModal, setShowVolumeHeightModal] = useState(false);
+  const [volumeHeight, setVolumeHeight] = useState('');
+  const [volumeHeightUnit, setVolumeHeightUnit] = useState<'m' | 'cm' | 'ft'>('m');
+  const [volumeHeightError, setVolumeHeightError] = useState<string | null>(null);
+
+  // Validation state
+  const [pointCountWarning, setPointCountWarning] = useState<string | null>(null);
+
+  // Snapping state
+  const [snapConfig, setSnapConfig] = useState<SnapConfig>({
+    gridEnabled: false,
+    gridSize: 20,
+    pointSnapEnabled: true,
+    snapRadius: 15,
+    showGrid: false,
+  });
+  const [snapIndicator, setSnapIndicator] = useState<{ point: Point; type: 'point' | 'grid' } | null>(null);
+
+  // Undo/Redo
+  const { canUndo, canRedo, undo, redo, execute: executeCommand } = useUndoRedo(50);
+
+  // Track deleted measurements for undo
+  const deletedMeasurementsRef = useRef<Map<string, Measurement>>(new Map());
+
+  // Type filter state
+  const measurementTypes: MeasurementType[] = ['distance', 'area', 'angle', 'volume', 'perimeter'];
+  const [visibleTypes, setVisibleTypes] = useState<Set<MeasurementType>>(new Set(measurementTypes));
+  const [showTypeFilter, setShowTypeFilter] = useState(false);
+
+  // Analytics panel state
+  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
+
+  // Cost estimator modal state
+  const [showCostEstimator, setShowCostEstimator] = useState(false);
+  const [costEstimate, setCostEstimate] = useState<CostEstimateData | undefined>(undefined);
+
+  // Pending measurement for undo/redo tracking
+  const pendingMeasurementRef = useRef<{
+    data: Omit<Measurement, 'id' | 'mapId' | 'createdAt' | 'updatedAt'>;
+    timestamp: number;
+  } | null>(null);
+
+  // Validation constants
+  const MAX_POINTS = 1000;
+  const MIN_AREA_POINTS = 3;
+
   // Colors for measurements
   const measurementColors = ['#FF5722', '#2196F3', '#4CAF50', '#9C27B0', '#FF9800'];
 
@@ -135,6 +197,11 @@ export function BlueprintViewer({
     return lowerUrl.endsWith('.pdf') || lowerUrl.includes('application/pdf');
   }, []);
 
+  const isCadFile = useCallback((url: string): boolean => {
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.endsWith('.dwg') || lowerUrl.endsWith('.dxf');
+  }, []);
+
   // ============================================
   // Image/PDF Loading
   // ============================================
@@ -142,6 +209,14 @@ export function BlueprintViewer({
   useEffect(() => {
     const loadContent = async () => {
       setImageLoaded(false);
+      setIsCad(false);
+
+      // Check for CAD files first - they can't be rendered
+      if (isCadFile(src)) {
+        setIsCad(true);
+        setIsPdf(false);
+        return;
+      }
 
       if (isPdfFile(src)) {
         setIsPdf(true);
@@ -243,6 +318,15 @@ export function BlueprintViewer({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw grid first (behind everything) if enabled
+    if (snapConfig.showGrid && snapConfig.gridEnabled) {
+      drawGrid(ctx, canvas.width, canvas.height, {
+        gridSize: snapConfig.gridSize,
+        offset,
+        scale,
+      });
+    }
+
     // Save context
     ctx.save();
 
@@ -267,11 +351,22 @@ export function BlueprintViewer({
       drawCurrentMeasurement(ctx);
     }
 
+    // Draw live measurement preview
+    if (activeTool !== 'pan' && activeTool !== 'calibrate' && currentPoints.length > 0 && cursorPosition) {
+      drawLivePreview(ctx);
+    }
+
+    // Draw snap indicator
+    if (snapIndicator && activeTool !== 'pan') {
+      const screenPoint = transformPoint(snapIndicator.point);
+      drawSnapIndicator(ctx, screenPoint, snapIndicator.type, 1);
+    }
+
     // Draw cursor crosshair when measuring
     if (activeTool !== 'pan' && cursorPosition) {
       drawCrosshair(ctx, cursorPosition);
     }
-  }, [scale, offset, rotation, showMeasurements, measurements, currentPoints, activeTool, cursorPosition, visibleMeasurements, calibrationPoints]);
+  }, [scale, offset, rotation, showMeasurements, measurements, currentPoints, activeTool, cursorPosition, visibleMeasurements, calibrationPoints, snapConfig, snapIndicator, visibleTypes, filteredMeasurements]);
 
   useEffect(() => {
     draw();
@@ -325,9 +420,29 @@ export function BlueprintViewer({
     };
   };
 
+  // Check if a point is within the viewport (with margin for labels)
+  const isPointInViewport = useCallback((point: Point, margin: number = 100): boolean => {
+    const canvas = canvasRef.current;
+    if (!canvas) return true;
+    const screenPoint = transformPoint(point);
+    return (
+      screenPoint.x >= -margin &&
+      screenPoint.x <= canvas.width + margin &&
+      screenPoint.y >= -margin &&
+      screenPoint.y <= canvas.height + margin
+    );
+  }, [transformPoint]);
+
+  // Check if any point of a measurement is visible
+  const isMeasurementInViewport = useCallback((m: Measurement): boolean => {
+    return m.points.some((p) => isPointInViewport(p));
+  }, [isPointInViewport]);
+
   const drawMeasurements = (ctx: CanvasRenderingContext2D) => {
-    measurements.forEach((measurement) => {
+    // Filter by type visibility AND viewport culling for performance
+    filteredMeasurements.forEach((measurement) => {
       if (!visibleMeasurements.has(measurement.id)) return;
+      if (!isMeasurementInViewport(measurement)) return;
 
       const transformedPoints = measurement.points.map(transformPoint);
 
@@ -400,6 +515,58 @@ export function BlueprintViewer({
 
         // Draw label at vertex
         drawLabel(ctx, `${measurement.value.toFixed(1)}${measurement.unit}`, vertex.x, vertex.y - 35, measurement.color);
+      } else if (measurement.type === 'volume' && transformedPoints.length >= 3) {
+        // Draw filled base polygon
+        ctx.beginPath();
+        ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+        transformedPoints.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+
+        // Draw vertices
+        transformedPoints.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Draw 3D indicator (vertical lines from corners)
+        ctx.setLineDash([3, 3]);
+        transformedPoints.forEach((p) => {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - 8, p.y - 12);
+          ctx.stroke();
+        });
+        ctx.setLineDash([]);
+
+        // Draw label at centroid
+        const centroid = getCentroid(transformedPoints);
+        drawLabel(ctx, `${measurement.value.toFixed(2)} ${measurement.unit}`, centroid.x, centroid.y, measurement.color);
+      } else if (measurement.type === 'perimeter' && transformedPoints.length >= 2) {
+        // Draw polygon outline (no fill or lighter fill)
+        ctx.beginPath();
+        ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+        transformedPoints.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.globalAlpha = 0.15;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+
+        // Draw vertices
+        transformedPoints.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Draw label at centroid
+        const centroid = getCentroid(transformedPoints);
+        drawLabel(ctx, `${measurement.value.toFixed(2)} ${measurement.unit}`, centroid.x, centroid.y, measurement.color);
       }
     });
   };
@@ -470,6 +637,24 @@ export function BlueprintViewer({
         ctx.lineTo(cursorPosition.x, cursorPosition.y);
       }
       ctx.stroke();
+    } else if (activeTool === 'volume' && transformedPoints.length >= 1) {
+      // Draw polygon preview (same as area)
+      ctx.beginPath();
+      ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+      transformedPoints.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+      if (cursorPosition) {
+        ctx.lineTo(cursorPosition.x, cursorPosition.y);
+      }
+      ctx.stroke();
+    } else if (activeTool === 'perimeter' && transformedPoints.length >= 1) {
+      // Draw polygon preview
+      ctx.beginPath();
+      ctx.moveTo(transformedPoints[0].x, transformedPoints[0].y);
+      transformedPoints.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+      if (cursorPosition) {
+        ctx.lineTo(cursorPosition.x, cursorPosition.y);
+      }
+      ctx.stroke();
     }
 
     // Draw points
@@ -531,6 +716,61 @@ export function BlueprintViewer({
     return { x: sum.x / points.length, y: sum.y / points.length };
   };
 
+  // Draw live measurement preview while drawing
+  const drawLivePreview = (ctx: CanvasRenderingContext2D) => {
+    if (currentPoints.length === 0 || !cursorPosition) return;
+
+    const imagePoint = inverseTransformPoint(cursorPosition);
+    let previewText = '';
+
+    if (activeTool === 'distance' && currentPoints.length === 1) {
+      const distance = calculateDistance(currentPoints[0], imagePoint);
+      previewText = formatMeasurementValue(distance, mapScale ? getDistanceUnit() : 'm');
+    } else if (activeTool === 'area' && currentPoints.length >= 2) {
+      const tempPoints = [...currentPoints, imagePoint];
+      const area = calculatePolygonArea(tempPoints);
+      previewText = formatMeasurementValue(area, mapScale ? getAreaUnit() : 'm²');
+    } else if (activeTool === 'angle' && currentPoints.length === 2) {
+      const angle = calculateAngle(currentPoints[0], currentPoints[1], imagePoint);
+      previewText = `${angle.toFixed(1)}°`;
+    } else if (activeTool === 'perimeter' && currentPoints.length >= 1) {
+      const tempPoints = [...currentPoints, imagePoint];
+      const perimeter = calculatePolygonPerimeter(tempPoints);
+      previewText = formatMeasurementValue(perimeter, mapScale ? getDistanceUnit() : 'm');
+    } else if (activeTool === 'volume' && currentPoints.length >= 2) {
+      const tempPoints = [...currentPoints, imagePoint];
+      const area = calculatePolygonArea(tempPoints);
+      previewText = `Base: ${formatMeasurementValue(area, mapScale ? getAreaUnit() : 'm²')}`;
+    }
+
+    if (previewText) {
+      drawTooltip(ctx, previewText, cursorPosition.x, cursorPosition.y, {
+        backgroundColor: 'rgba(26, 26, 46, 0.9)',
+        textColor: '#C5A572',
+        fontSize: 13,
+        offsetY: -30,
+      });
+    }
+  };
+
+  // Apply snapping to a point
+  const applyPointSnapping = (point: Point): Point => {
+    if (!snapConfig.gridEnabled && !snapConfig.pointSnapEnabled) {
+      setSnapIndicator(null);
+      return point;
+    }
+
+    const { point: snappedPoint, snappedTo } = applySnapping(point, snapConfig, measurements);
+
+    if (snappedTo) {
+      setSnapIndicator({ point: snappedPoint, type: snappedTo });
+    } else {
+      setSnapIndicator(null);
+    }
+
+    return snappedPoint;
+  };
+
   // ============================================
   // Event Handlers
   // ============================================
@@ -546,7 +786,8 @@ export function BlueprintViewer({
       setIsDragging(true);
       setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
     } else if (activeTool === 'calibrate' && editable) {
-      const imagePoint = inverseTransformPoint({ x, y });
+      const rawPoint = inverseTransformPoint({ x, y });
+      const imagePoint = applyPointSnapping(rawPoint);
       if (calibrationPoints.length === 0) {
         setCalibrationPoints([imagePoint]);
       } else {
@@ -555,7 +796,8 @@ export function BlueprintViewer({
         setShowCalibrationModal(true);
       }
     } else if (editable) {
-      const imagePoint = inverseTransformPoint({ x, y });
+      const rawPoint = inverseTransformPoint({ x, y });
+      const imagePoint = applyPointSnapping(rawPoint);
 
       if (activeTool === 'distance') {
         if (currentPoints.length === 0) {
@@ -565,14 +807,16 @@ export function BlueprintViewer({
           const points = [...currentPoints, imagePoint];
           const distance = calculateDistance(points[0], points[1]);
 
-          onMeasurementCreate?.({
-            type: 'distance',
+          const measurementData = {
+            type: 'distance' as MeasurementType,
             points,
             value: distance,
             unit: mapScale ? getDistanceUnit() : 'm',
             color: measurementColors[measurements.length % measurementColors.length],
             name: `Distance ${measurements.length + 1}`,
-          });
+          };
+
+          createMeasurementWithUndo(measurementData);
           setCurrentPoints([]);
         }
       } else if (activeTool === 'area') {
@@ -585,16 +829,34 @@ export function BlueprintViewer({
           const points = [...currentPoints, imagePoint];
           const angle = calculateAngle(points[0], points[1], points[2]);
 
-          onMeasurementCreate?.({
-            type: 'angle',
+          const measurementData = {
+            type: 'angle' as MeasurementType,
             points,
             value: angle,
             unit: '°',
             color: measurementColors[measurements.length % measurementColors.length],
             name: `Angle ${measurements.length + 1}`,
-          });
+          };
+
+          createMeasurementWithUndo(measurementData);
           setCurrentPoints([]);
         }
+      } else if (activeTool === 'volume') {
+        // Volume: collect polygon points (like area), complete on double-click
+        if (currentPoints.length >= MAX_POINTS) {
+          setPointCountWarning(isArabic ? `الحد الأقصى ${MAX_POINTS} نقطة` : `Maximum ${MAX_POINTS} points`);
+          setTimeout(() => setPointCountWarning(null), 3000);
+          return;
+        }
+        setCurrentPoints([...currentPoints, imagePoint]);
+      } else if (activeTool === 'perimeter') {
+        // Perimeter: collect polygon points, complete on double-click
+        if (currentPoints.length >= MAX_POINTS) {
+          setPointCountWarning(isArabic ? `الحد الأقصى ${MAX_POINTS} نقطة` : `Maximum ${MAX_POINTS} points`);
+          setTimeout(() => setPointCountWarning(null), 3000);
+          return;
+        }
+        setCurrentPoints([...currentPoints, imagePoint]);
       }
     }
   };
@@ -624,13 +886,30 @@ export function BlueprintViewer({
     if (activeTool === 'area' && currentPoints.length >= 3 && editable) {
       const area = calculatePolygonArea(currentPoints);
 
-      onMeasurementCreate?.({
+      createMeasurementWithUndo({
         type: 'area',
         points: currentPoints,
         value: area,
         unit: mapScale ? getAreaUnit() : 'm²',
         color: measurementColors[measurements.length % measurementColors.length],
         name: `Area ${measurements.length + 1}`,
+      });
+      setCurrentPoints([]);
+    } else if (activeTool === 'volume' && currentPoints.length >= MIN_AREA_POINTS && editable) {
+      // Show height input modal for volume
+      setVolumeHeight('');
+      setVolumeHeightError(null);
+      setShowVolumeHeightModal(true);
+    } else if (activeTool === 'perimeter' && currentPoints.length >= 2 && editable) {
+      const perimeter = calculatePolygonPerimeter(currentPoints);
+
+      createMeasurementWithUndo({
+        type: 'perimeter',
+        points: currentPoints,
+        value: perimeter,
+        unit: mapScale ? getDistanceUnit() : 'm',
+        color: measurementColors[measurements.length % measurementColors.length],
+        name: `Perimeter ${measurements.length + 1}`,
       });
       setCurrentPoints([]);
     }
@@ -678,10 +957,123 @@ export function BlueprintViewer({
     });
   };
 
+  // Toggle all measurements visibility
+  const showAllMeasurements = () => {
+    setVisibleMeasurements(new Set(measurements.map((m) => m.id)));
+  };
+
+  const hideAllMeasurements = () => {
+    setVisibleMeasurements(new Set());
+  };
+
+  // Toggle snap settings
+  const toggleGridSnap = () => {
+    setSnapConfig((prev) => ({
+      ...prev,
+      gridEnabled: !prev.gridEnabled,
+      showGrid: !prev.gridEnabled, // Show grid when enabled
+    }));
+  };
+
+  const togglePointSnap = () => {
+    setSnapConfig((prev) => ({
+      ...prev,
+      pointSnapEnabled: !prev.pointSnapEnabled,
+    }));
+  };
+
   const cancelCurrentMeasurement = () => {
     setCurrentPoints([]);
     setActiveTool('pan');
   };
+
+  // Toggle type visibility
+  const toggleTypeVisibility = (type: MeasurementType) => {
+    setVisibleTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const showAllTypes = () => setVisibleTypes(new Set(measurementTypes));
+  const hideAllTypes = () => setVisibleTypes(new Set());
+
+  // Filter measurements by visible types
+  const filteredMeasurements = measurements.filter((m) => visibleTypes.has(m.type));
+
+  // Create measurement with undo/redo support
+  const createMeasurementWithUndo = useCallback(
+    (measurementData: Omit<Measurement, 'id' | 'mapId' | 'createdAt' | 'updatedAt'>) => {
+      // Store pending measurement for tracking
+      const timestamp = Date.now();
+      pendingMeasurementRef.current = { data: measurementData, timestamp };
+
+      // Find measurement after it's created (by matching properties)
+      const findCreatedMeasurement = (): Measurement | null => {
+        // Look for a measurement that matches our data
+        return measurements.find(
+          (m) =>
+            m.type === measurementData.type &&
+            m.color === measurementData.color &&
+            m.name === measurementData.name &&
+            JSON.stringify(m.points) === JSON.stringify(measurementData.points)
+        ) || null;
+      };
+
+      const command = createCommand(
+        'CREATE_MEASUREMENT',
+        () => {
+          onMeasurementCreate?.(measurementData);
+        },
+        () => {
+          // Find the measurement that was created and delete it
+          const createdMeasurement = findCreatedMeasurement();
+          if (createdMeasurement) {
+            deletedMeasurementsRef.current.set(createdMeasurement.id, createdMeasurement);
+            onMeasurementDelete?.(createdMeasurement.id);
+          }
+        },
+        `Create ${measurementData.type} measurement`
+      );
+
+      executeCommand(command);
+    },
+    [measurements, onMeasurementCreate, onMeasurementDelete, executeCommand]
+  );
+
+  // Delete measurement with undo/redo support
+  const deleteMeasurementWithUndo = useCallback(
+    (id: string) => {
+      const measurement = measurements.find((m) => m.id === id);
+      if (!measurement) return;
+
+      // Store for potential restore
+      deletedMeasurementsRef.current.set(id, measurement);
+
+      const command = createCommand(
+        'DELETE_MEASUREMENT',
+        () => {
+          onMeasurementDelete?.(id);
+        },
+        () => {
+          // Restore the measurement
+          const storedMeasurement = deletedMeasurementsRef.current.get(id);
+          if (storedMeasurement && onMeasurementRestore) {
+            onMeasurementRestore(storedMeasurement);
+          }
+        },
+        `Delete ${measurement.type} measurement`
+      );
+
+      executeCommand(command);
+    },
+    [measurements, onMeasurementDelete, onMeasurementRestore, executeCommand]
+  );
 
   // ============================================
   // Calculation Helpers
@@ -705,6 +1097,12 @@ export function BlueprintViewer({
   const getAreaUnit = (): string => {
     const unit = mapScale?.unit || 'm';
     return unit === 'ft' || unit === 'in' ? 'ft²' : 'm²';
+  };
+
+  // Get volume unit from scale
+  const getVolumeUnit = (): string => {
+    const unit = mapScale?.unit || 'm';
+    return unit === 'ft' || unit === 'in' ? 'ft³' : 'm³';
   };
 
   const calculateDistance = (p1: Point, p2: Point): number => {
@@ -742,6 +1140,23 @@ export function BlueprintViewer({
     const angleDegrees = (angleRadians * 180) / Math.PI;
 
     return angleDegrees;
+  };
+
+  // Calculate perimeter of a polygon (sum of all edge distances)
+  const calculatePolygonPerimeter = (points: Point[]): number => {
+    if (points.length < 2) return 0;
+    let perimeter = 0;
+    for (let i = 0; i < points.length; i++) {
+      const j = (i + 1) % points.length;
+      perimeter += calculateDistance(points[i], points[j]);
+    }
+    return perimeter;
+  };
+
+  // Calculate volume (base area × height)
+  const calculateVolume = (points: Point[], height: number): number => {
+    const baseArea = calculatePolygonArea(points);
+    return baseArea * height;
   };
 
   // Calculate pixel distance for calibration
@@ -848,6 +1263,35 @@ export function BlueprintViewer({
 
       {/* Top Toolbar */}
       <div className="absolute top-4 left-4 flex gap-2 bg-white/90 backdrop-blur rounded-lg p-2 shadow-lg">
+        {/* Undo/Redo */}
+        {editable && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={undo}
+              disabled={!canUndo}
+              title={isArabic ? 'تراجع (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
+              className={!canUndo ? 'opacity-40' : ''}
+            >
+              <Undo2 className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={redo}
+              disabled={!canRedo}
+              title={isArabic ? 'إعادة (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
+              className={!canRedo ? 'opacity-40' : ''}
+            >
+              <Redo2 className="w-4 h-4" />
+            </Button>
+
+            <div className="w-px bg-gray-300" />
+          </>
+        )}
+
         <Button
           variant={activeTool === 'pan' ? 'primary' : 'ghost'}
           size="sm"
@@ -922,6 +1366,63 @@ export function BlueprintViewer({
             >
               <Triangle className="w-4 h-4" />
             </Button>
+
+            <Button
+              variant={activeTool === 'volume' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => {
+                if (!isCalibrated) {
+                  setShowCalibrationWarning(true);
+                  setTimeout(() => setShowCalibrationWarning(false), 3000);
+                  return;
+                }
+                setActiveTool('volume');
+                setCurrentPoints([]);
+              }}
+              title={isArabic ? 'قياس الحجم' : 'Measure Volume'}
+              className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <Box className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant={activeTool === 'perimeter' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => {
+                if (!isCalibrated) {
+                  setShowCalibrationWarning(true);
+                  setTimeout(() => setShowCalibrationWarning(false), 3000);
+                  return;
+                }
+                setActiveTool('perimeter');
+                setCurrentPoints([]);
+              }}
+              title={isArabic ? 'قياس المحيط' : 'Measure Perimeter'}
+              className={!isCalibrated ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <Minimize2 className="w-4 h-4" />
+            </Button>
+
+            <div className="w-px bg-gray-300" />
+
+            {/* Snap Controls */}
+            <Button
+              variant={snapConfig.gridEnabled ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={toggleGridSnap}
+              title={isArabic ? 'التقاط للشبكة' : 'Snap to Grid'}
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant={snapConfig.pointSnapEnabled ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={togglePointSnap}
+              title={isArabic ? 'التقاط للنقاط' : 'Snap to Points'}
+            >
+              <Magnet className="w-4 h-4" />
+            </Button>
           </>
         )}
 
@@ -946,6 +1447,43 @@ export function BlueprintViewer({
         <Button variant="ghost" size="sm" onClick={toggleFullscreen} title={isArabic ? 'ملء الشاشة' : 'Fullscreen'}>
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </Button>
+
+        {/* Export and Analytics */}
+        {showExport && measurements.length > 0 && (
+          <>
+            <div className="w-px bg-gray-300" />
+            <ExportToolbar
+              measurements={measurements}
+              projectId={projectId || 'demo'}
+              projectName={projectName}
+              projectLogo={projectLogo}
+              costEstimate={costEstimate}
+            />
+          </>
+        )}
+
+        {editable && projectId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCostEstimator(true)}
+            title={isArabic ? 'تقدير التكلفة' : 'Cost Estimator'}
+            disabled={measurements.length === 0}
+          >
+            <DollarSign className="w-4 h-4" />
+          </Button>
+        )}
+
+        {showAnalytics && measurements.length > 0 && (
+          <Button
+            variant={showAnalyticsPanel ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
+            title={isArabic ? 'التحليلات' : 'Analytics'}
+          >
+            <BarChart3 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {/* Scale Indicator, Calibration Badge & PDF Badge */}
@@ -1014,12 +1552,96 @@ export function BlueprintViewer({
                 {isArabic ? 'القياسات' : 'Measurements'}
               </span>
             </div>
-            <span className="text-xs text-gray-500">{measurements.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">{filteredMeasurements.length}/{measurements.length}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-1"
+                onClick={(e) => { e.stopPropagation(); setShowTypeFilter(!showTypeFilter); }}
+                title={isArabic ? 'تصفية حسب النوع' : 'Filter by type'}
+              >
+                <Filter className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
 
           {showLayers && (
-            <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-              {measurements.map((m) => (
+            <>
+              {/* Type Filter */}
+              {showTypeFilter && (
+                <div className="px-3 py-2 border-b bg-blue-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-blue-900">
+                      {isArabic ? 'تصفية حسب النوع' : 'Filter by Type'}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs py-0 px-1 h-5"
+                        onClick={showAllTypes}
+                      >
+                        {isArabic ? 'الكل' : 'All'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs py-0 px-1 h-5"
+                        onClick={hideAllTypes}
+                      >
+                        {isArabic ? 'لا شيء' : 'None'}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {measurementTypes.map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => toggleTypeVisibility(type)}
+                        className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                          visibleTypes.has(type)
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                        }`}
+                      >
+                        {type === 'distance' && (isArabic ? 'مسافة' : 'Distance')}
+                        {type === 'area' && (isArabic ? 'مساحة' : 'Area')}
+                        {type === 'angle' && (isArabic ? 'زاوية' : 'Angle')}
+                        {type === 'volume' && (isArabic ? 'حجم' : 'Volume')}
+                        {type === 'perimeter' && (isArabic ? 'محيط' : 'Perimeter')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show All / Hide All controls */}
+              <div className="flex items-center justify-between px-3 py-1 border-b bg-gray-50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs py-0.5 px-2"
+                  onClick={showAllMeasurements}
+                  title={isArabic ? 'إظهار الكل' : 'Show All'}
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  {isArabic ? 'الكل' : 'All'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs py-0.5 px-2"
+                  onClick={hideAllMeasurements}
+                  title={isArabic ? 'إخفاء الكل' : 'Hide All'}
+                >
+                  <EyeOff className="w-3 h-3 mr-1" />
+                  {isArabic ? 'إخفاء' : 'Hide'}
+                </Button>
+              </div>
+
+              <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+              {filteredMeasurements.map((m) => (
                 <div
                   key={m.id}
                   className="flex items-center justify-between px-2 py-1 rounded hover:bg-gray-100"
@@ -1052,7 +1674,7 @@ export function BlueprintViewer({
                         variant="ghost"
                         size="sm"
                         className="p-1 text-red-500 hover:text-red-700"
-                        onClick={() => onMeasurementDelete(m.id)}
+                        onClick={() => deleteMeasurementWithUndo(m.id)}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -1060,7 +1682,8 @@ export function BlueprintViewer({
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1080,7 +1703,21 @@ export function BlueprintViewer({
                 ? (isArabic ? 'انقر لتحديد رأس الزاوية' : 'Click to set angle vertex')
                 : (isArabic ? 'انقر لتحديد النقطة الثالثة' : 'Click to set third point')
             )}
+            {activeTool === 'volume' && (
+              currentPoints.length < MIN_AREA_POINTS
+                ? (isArabic ? `انقر لإضافة نقاط القاعدة (${MIN_AREA_POINTS}+)` : `Click to add base points (${MIN_AREA_POINTS}+)`)
+                : (isArabic ? 'انقر مزدوج لتحديد الارتفاع' : 'Double-click to enter height')
+            )}
+            {activeTool === 'perimeter' && (
+              isArabic ? 'انقر لإضافة نقاط، انقر مزدوج للإنهاء' : 'Click to add points, double-click to finish'
+            )}
           </p>
+          {/* Point counter for polygon tools */}
+          {(activeTool === 'area' || activeTool === 'volume' || activeTool === 'perimeter') && (
+            <p className="text-xs text-gray-500 mt-1">
+              {isArabic ? `النقاط: ${currentPoints.length}` : `Points: ${currentPoints.length}`}
+            </p>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -1094,23 +1731,69 @@ export function BlueprintViewer({
 
       {/* Calibration Instructions */}
       {activeTool === 'calibrate' && !showCalibrationModal && (
-        <div className="absolute bottom-4 right-4 bg-pink-50 border border-pink-200 backdrop-blur rounded-lg px-4 py-3 shadow-lg max-w-xs">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="absolute bottom-4 right-4 bg-pink-50 border border-pink-200 backdrop-blur rounded-lg px-4 py-3 shadow-lg max-w-sm">
+          <div className="flex items-center gap-2 mb-3">
             <Scale className="w-5 h-5 text-pink-600" />
             <span className="font-medium text-pink-900">
               {isArabic ? 'معايرة المقياس' : 'Scale Calibration'}
             </span>
           </div>
-          <p className="text-sm text-pink-800">
-            {calibrationPoints.length === 0
-              ? (isArabic ? 'انقر على نقطة البداية لمسافة معروفة' : 'Click the start point of a known distance')
-              : (isArabic ? 'انقر على نقطة النهاية' : 'Click the end point')
-            }
-          </p>
+
+          {/* Step Indicators */}
+          <div className="flex items-center gap-2 mb-3">
+            {[1, 2].map((step) => (
+              <div key={step} className="flex items-center gap-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                  ${calibrationPoints.length === step - 1
+                    ? 'bg-pink-600 text-white'
+                    : calibrationPoints.length >= step
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                  {step}
+                </div>
+                {step < 2 && <div className="w-6 h-px bg-gray-300" />}
+              </div>
+            ))}
+          </div>
+
+          {/* Step Instructions */}
+          <div className="text-sm text-pink-800 space-y-1">
+            {calibrationPoints.length === 0 && (
+              <div>
+                <p className="font-medium">
+                  {isArabic ? 'الخطوة 1: نقطة البداية' : 'Step 1: Start Point'}
+                </p>
+                <p className="text-xs text-pink-700">
+                  {isArabic
+                    ? 'انقر على بداية مسافة معروفة (مثل: باب، نافذة، جدار)'
+                    : 'Click the start of a known distance (e.g., door, window, wall)'
+                  }
+                </p>
+              </div>
+            )}
+            {calibrationPoints.length === 1 && (
+              <div>
+                <p className="font-medium">
+                  {isArabic ? 'الخطوة 2: نقطة النهاية' : 'Step 2: End Point'}
+                </p>
+                <p className="text-xs text-pink-700">
+                  {isArabic ? 'انقر على نهاية المسافة المعروفة' : 'Click the end of the known distance'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Tip */}
+          <div className="mt-3 pt-2 border-t border-pink-200 text-xs text-pink-700">
+            <p className="font-medium">{isArabic ? 'نصيحة:' : 'Tip:'}</p>
+            <p>{isArabic ? 'اختر مسافة طويلة للحصول على دقة أفضل' : 'Choose a longer distance for better accuracy'}</p>
+          </div>
+
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 text-red-500"
+            className="mt-3 text-red-500 w-full"
             onClick={cancelCalibration}
           >
             {isArabic ? 'إلغاء' : 'Cancel'}
@@ -1132,6 +1815,18 @@ export function BlueprintViewer({
               ? 'استخدم أداة المقياس لتعيين المسافة الحقيقية قبل إجراء القياسات'
               : 'Use the Scale tool to set real-world distance before measuring'}
           </p>
+        </div>
+      )}
+
+      {/* Point Count Warning */}
+      {pointCountWarning && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-amber-100 border border-amber-300 backdrop-blur rounded-lg px-4 py-3 shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <span className="font-medium text-amber-900">
+              {pointCountWarning}
+            </span>
+          </div>
         </div>
       )}
 
@@ -1224,8 +1919,170 @@ export function BlueprintViewer({
         </div>
       )}
 
+      {/* Volume Height Modal */}
+      {showVolumeHeightModal && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Box className="w-5 h-5 text-blue-600" />
+                {isArabic ? 'أدخل الارتفاع' : 'Enter Height'}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => {
+                setShowVolumeHeightModal(false);
+                setVolumeHeight('');
+                setVolumeHeightError(null);
+              }}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              {isArabic
+                ? 'أدخل ارتفاع الحجم لحساب الحجم الكلي'
+                : 'Enter the height to calculate total volume'
+              }
+            </p>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                value={volumeHeight}
+                onChange={(e) => { setVolumeHeight(e.target.value); setVolumeHeightError(null); }}
+                placeholder={isArabic ? 'الارتفاع' : 'Height'}
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                min="0"
+                step="0.01"
+                autoFocus
+              />
+              <select
+                value={volumeHeightUnit}
+                onChange={(e) => setVolumeHeightUnit(e.target.value as 'm' | 'cm' | 'ft')}
+                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="m">{isArabic ? 'متر' : 'Meters (m)'}</option>
+                <option value="cm">{isArabic ? 'سنتيمتر' : 'Centimeters (cm)'}</option>
+                <option value="ft">{isArabic ? 'قدم' : 'Feet (ft)'}</option>
+              </select>
+            </div>
+
+            {volumeHeightError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {volumeHeightError}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => {
+                  setShowVolumeHeightModal(false);
+                  setVolumeHeight('');
+                  setVolumeHeightError(null);
+                  setCurrentPoints([]);
+                }}
+              >
+                {isArabic ? 'إلغاء' : 'Cancel'}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={() => {
+                  if (!volumeHeight || parseFloat(volumeHeight) <= 0) {
+                    setVolumeHeightError(isArabic ? 'يرجى إدخال ارتفاع صالح' : 'Please enter a valid height');
+                    return;
+                  }
+
+                  // Convert height to meters based on unit
+                  let heightInMeters = parseFloat(volumeHeight);
+                  if (volumeHeightUnit === 'cm') {
+                    heightInMeters = heightInMeters / 100;
+                  } else if (volumeHeightUnit === 'ft') {
+                    heightInMeters = heightInMeters * 0.3048;
+                  }
+
+                  // Calculate volume
+                  const volume = calculateVolume(currentPoints, heightInMeters);
+
+                  createMeasurementWithUndo({
+                    type: 'volume',
+                    points: currentPoints,
+                    value: volume,
+                    unit: getVolumeUnit(),
+                    color: measurementColors[measurements.length % measurementColors.length],
+                    name: `Volume ${measurements.length + 1}`,
+                  });
+
+                  // Reset state
+                  setShowVolumeHeightModal(false);
+                  setVolumeHeight('');
+                  setVolumeHeightError(null);
+                  setCurrentPoints([]);
+                }}
+                disabled={!volumeHeight || parseFloat(volumeHeight) <= 0}
+              >
+                {isArabic ? 'حساب الحجم' : 'Calculate Volume'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analytics Panel */}
+      {showAnalytics && showAnalyticsPanel && measurements.length > 0 && (
+        <AnalyticsPanel
+          measurements={measurements}
+          projectId={projectId}
+          className="absolute bottom-4 right-4"
+          isExpanded={showAnalyticsPanel}
+          onToggle={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
+        />
+      )}
+
+      {/* Cost Estimator Modal */}
+      {showCostEstimator && (
+        <CostEstimatorModal
+          isOpen={showCostEstimator}
+          onClose={() => setShowCostEstimator(false)}
+          measurements={measurements}
+          projectId={projectId}
+          onEstimateCreated={(estimate) => {
+            setCostEstimate(estimate);
+            setShowCostEstimator(false);
+          }}
+        />
+      )}
+
+      {/* CAD File Warning */}
+      {isCad && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 max-w-md mx-4 text-center shadow-xl">
+            <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-amber-900 mb-2">
+              {isArabic ? 'ملف CAD غير مدعوم' : 'CAD File Not Supported'}
+            </h3>
+            <p className="text-amber-800 mb-4">
+              {isArabic
+                ? 'لا يمكن عرض ملفات DWG و DXF مباشرة. يرجى تحويل الملف إلى PDF أو صورة PNG/JPG للاستخدام مع أدوات القياس.'
+                : 'DWG and DXF files cannot be viewed directly. Please convert your file to PDF or PNG/JPG image to use measurement tools.'
+              }
+            </p>
+            <div className="text-sm text-amber-700 text-start">
+              <p className="font-medium mb-2">
+                {isArabic ? 'طرق التحويل المقترحة:' : 'Suggested conversion methods:'}
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>{isArabic ? 'AutoCAD: ملف ← تصدير ← PDF' : 'AutoCAD: File → Export → PDF'}</li>
+                <li>{isArabic ? 'أدوات مجانية عبر الإنترنت: Convertio, CloudConvert' : 'Free online tools: Convertio, CloudConvert'}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading State */}
-      {(!imageLoaded || pdfLoading) && (
+      {!isCad && (!imageLoaded || pdfLoading) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
           <div className="text-white flex items-center gap-2">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />

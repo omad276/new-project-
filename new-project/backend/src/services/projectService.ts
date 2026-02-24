@@ -1,5 +1,8 @@
 import { Project } from '../models/Project.js';
 import { User } from '../models/User.js';
+import { Map } from '../models/Map.js';
+import { Measurement } from '../models/Measurement.js';
+import { CostEstimate } from '../models/CostEstimate.js';
 import { AppError } from '../utils/AppError.js';
 import {
   PublicProject,
@@ -216,6 +219,33 @@ export async function deleteProject(
   // Check ownership or admin
   if (project.owner.toString() !== ownerId && !isAdmin) {
     throw AppError.forbidden('You can only delete your own projects');
+  }
+
+  // Cascade delete: measurements, cost estimates, and maps
+  const maps = await Map.find({ project: projectId });
+
+  if (maps.length > 0) {
+    const mapIds = maps.map((m) => m._id);
+
+    // Delete all measurements for these maps
+    const deletedMeasurements = await Measurement.deleteMany({ map: { $in: mapIds } });
+    if (deletedMeasurements.deletedCount > 0) {
+      console.log(
+        `Cascade deleted ${deletedMeasurements.deletedCount} measurements for project ${projectId}`
+      );
+    }
+
+    // Delete all maps
+    const deletedMaps = await Map.deleteMany({ project: projectId });
+    console.log(`Cascade deleted ${deletedMaps.deletedCount} maps for project ${projectId}`);
+  }
+
+  // Delete all cost estimates for this project
+  const deletedEstimates = await CostEstimate.deleteMany({ project: projectId });
+  if (deletedEstimates.deletedCount > 0) {
+    console.log(
+      `Cascade deleted ${deletedEstimates.deletedCount} cost estimates for project ${projectId}`
+    );
   }
 
   await project.deleteOne();

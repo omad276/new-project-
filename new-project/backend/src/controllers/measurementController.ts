@@ -95,7 +95,7 @@ export async function getMeasurementTotals(
   res: Response<ApiResponse>
 ): Promise<void> {
   const { projectId } = req.params;
-  const totals = await measurementService.getMeasurementTotals(projectId);
+  const totals = await measurementService.getMeasurementTotals(projectId, req.user?.userId);
 
   res.json({
     success: true,
@@ -300,7 +300,8 @@ export async function calculateFromMeasurements(
 
   const items = await measurementService.calculateCostFromMeasurements(
     data.measurementIds,
-    data.unitCosts
+    data.unitCosts,
+    req.user?.userId
   );
 
   res.json({

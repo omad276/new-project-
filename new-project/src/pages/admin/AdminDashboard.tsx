@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getUserStats, getPropertyStats, UserStats, PropertyStats } from '@/services/adminService';
+import { getUserStats, getPropertyStats } from '@/services/adminService';
+import type { UserStats, PropertyStats } from '@/services/adminService';
 
 function AdminDashboard() {
   const { i18n } = useTranslation();

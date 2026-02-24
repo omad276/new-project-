@@ -22,6 +22,7 @@ export async function listUsers(req: AuthRequest, res: Response): Promise<void> 
   res.json({
     success: true,
     message: 'Users retrieved',
+    messageAr: 'تم استرجاع المستخدمين',
     data: result.users,
     pagination: result.pagination,
   });
@@ -37,6 +38,7 @@ export async function getStats(_req: AuthRequest, res: Response<ApiResponse>): P
   res.json({
     success: true,
     message: 'User statistics retrieved',
+    messageAr: 'تم استرجاع إحصائيات المستخدمين',
     data: stats,
   });
 }
@@ -51,6 +53,7 @@ export async function getUser(req: AuthRequest, res: Response<ApiResponse>): Pro
   res.json({
     success: true,
     message: 'User retrieved',
+    messageAr: 'تم استرجاع المستخدم',
     data: user,
   });
 }
@@ -66,6 +69,7 @@ export async function updateUser(req: AuthRequest, res: Response<ApiResponse>): 
   res.json({
     success: true,
     message: 'User updated successfully',
+    messageAr: 'تم تحديث المستخدم بنجاح',
     data: user,
   });
 }
@@ -80,5 +84,6 @@ export async function deleteUser(req: AuthRequest, res: Response<ApiResponse>): 
   res.json({
     success: true,
     message: 'User deactivated successfully',
+    messageAr: 'تم تعطيل المستخدم بنجاح',
   });
 }
