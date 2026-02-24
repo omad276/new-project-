@@ -194,7 +194,6 @@ export async function getConversations(userId: string): Promise<ConversationSumm
           participant: {
             _id: participant._id.toString(),
             fullName: participant.fullName,
-            fullNameAr: participant.fullNameAr,
             avatar: participant.avatar,
           },
           lastMessage: {

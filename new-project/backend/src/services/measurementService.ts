@@ -84,8 +84,9 @@ function calculateAngle(p1: Point2D, vertex: Point2D, p2: Point2D): number {
 
 /**
  * Calculate volume (simplified for rectangular prisms)
+ * Exported for future use
  */
-function calculateVolume(points: Point3D[], height?: number): number {
+export function calculateVolume(points: Point3D[], height?: number): number {
   const baseArea = calculatePolygonArea(points);
   const h = height || points[0]?.z || 0;
   return baseArea * h;
@@ -257,9 +258,16 @@ export async function createMeasurement(input: CreateMeasurementInput): Promise<
     case 'perimeter':
       pixelValue = calculatePerimeter(points as Point2D[]);
       break;
-    case 'volume':
-      pixelValue = calculateVolume(points as Point3D[]);
+    case 'volume': {
+      // Height comes from first point's z coordinate (already in real-world units from frontend)
+      const height = (points as Point3D[])[0]?.z || 0;
+      // Calculate pixel area first
+      const pixelArea = calculatePolygonArea(points as Point2D[]);
+      // Apply scale to get real-world area, then multiply by height
+      const scaledArea = applyScale(pixelArea, map.scale, 'area');
+      pixelValue = scaledArea * height; // Both now in real-world units
       break;
+    }
     case 'angle':
       if (points.length !== 3) {
         throw AppError.badRequest('Angle measurement requires exactly 3 points');
@@ -270,8 +278,9 @@ export async function createMeasurement(input: CreateMeasurementInput): Promise<
       throw AppError.badRequest(`Unknown measurement type: ${type}`);
   }
 
-  // Apply scale calibration (angle doesn't need scaling)
-  const value = type === 'angle' ? pixelValue : applyScale(pixelValue, map.scale, type);
+  // Apply scale calibration (angle doesn't need scaling, volume is pre-calculated with scale)
+  const value =
+    type === 'angle' || type === 'volume' ? pixelValue : applyScale(pixelValue, map.scale, type);
 
   const measurementUnit = unit || getDefaultUnit(type, map.scale);
   const displayValue = formatDisplayValue(value, measurementUnit);
@@ -457,10 +466,24 @@ export async function deleteMeasurement(
 /**
  * Get measurement totals by type for a project
  */
-export async function getMeasurementTotals(projectId: string): Promise<{
+export async function getMeasurementTotals(
+  projectId: string,
+  userId?: string
+): Promise<{
   totals: Record<MeasurementType, number>;
   count: Record<MeasurementType, number>;
 }> {
+  // Verify project access
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw AppError.notFound('Project not found');
+  }
+
+  const isOwner = userId === project.owner.toString();
+  if (!project.isPublic && !isOwner) {
+    throw AppError.forbidden('You do not have access to this project');
+  }
+
   const measurements = await Measurement.find({ project: projectId });
 
   const result = {
@@ -718,9 +741,23 @@ export async function getProjectCostSummary(projectId: string): Promise<{
  */
 export async function calculateCostFromMeasurements(
   measurementIds: string[],
-  unitCosts: { type: MeasurementType; costPerUnit: number; unit: string }[]
+  unitCosts: { type: MeasurementType; costPerUnit: number; unit: string }[],
+  userId?: string
 ): Promise<CostItem[]> {
   const measurements = await Measurement.find({ _id: { $in: measurementIds } });
+
+  // Verify user has access to all measurements
+  if (userId) {
+    const projectIds = [...new Set(measurements.map((m) => m.project.toString()))];
+    const projects = await Project.find({ _id: { $in: projectIds } });
+
+    for (const project of projects) {
+      const isOwner = userId === project.owner.toString();
+      if (!project.isPublic && !isOwner) {
+        throw AppError.forbidden('You do not have access to one or more measurements');
+      }
+    }
+  }
 
   const items: CostItem[] = [];
 

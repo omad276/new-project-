@@ -2,10 +2,11 @@
   "name": "upgreat-api",
   "version": "1.0.0",
   "description": "Upgreat Real Estate Platform API",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm install && tsc",
     "start": "node dist/index.js",
     "seed": "tsx src/seed.ts",
     "lint": "eslint src --ext .ts",

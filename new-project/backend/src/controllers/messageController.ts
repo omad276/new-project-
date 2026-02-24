@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import * as messageService from '../services/messageService.js';
 import { validate, sendMessageSchema } from '../utils/validation.js';
+import { AuthRequest } from '../types/index.js';
 
 // ============================================
 // Message Controller
@@ -10,7 +11,7 @@ import { validate, sendMessageSchema } from '../utils/validation.js';
  * Send a message
  * POST /api/messages
  */
-export async function sendMessage(req: Request, res: Response): Promise<void> {
+export async function sendMessage(req: AuthRequest, res: Response): Promise<void> {
   const senderId = req.user!.id;
   const data = validate(sendMessageSchema, req.body);
 
@@ -32,7 +33,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
  * Get all conversations
  * GET /api/messages/conversations
  */
-export async function getConversations(req: Request, res: Response): Promise<void> {
+export async function getConversations(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
 
   const conversations = await messageService.getConversations(userId);
@@ -47,7 +48,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
  * Get messages in a conversation
  * GET /api/messages/conversations/:userId
  */
-export async function getConversation(req: Request, res: Response): Promise<void> {
+export async function getConversation(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
   const otherUserId = req.params.userId;
   const page = parseInt(req.query.page as string) || 1;
@@ -66,7 +67,7 @@ export async function getConversation(req: Request, res: Response): Promise<void
  * Get unread message count
  * GET /api/messages/unread
  */
-export async function getUnreadCount(req: Request, res: Response): Promise<void> {
+export async function getUnreadCount(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
 
   const count = await messageService.getUnreadCount(userId);
@@ -81,7 +82,7 @@ export async function getUnreadCount(req: Request, res: Response): Promise<void>
  * Mark conversation as read
  * PATCH /api/messages/conversations/:userId/read
  */
-export async function markAsRead(req: Request, res: Response): Promise<void> {
+export async function markAsRead(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
   const otherUserId = req.params.userId;
 
@@ -100,7 +101,7 @@ export async function markAsRead(req: Request, res: Response): Promise<void> {
  * Delete a message
  * DELETE /api/messages/:messageId
  */
-export async function deleteMessage(req: Request, res: Response): Promise<void> {
+export async function deleteMessage(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
   const { messageId } = req.params;
 
