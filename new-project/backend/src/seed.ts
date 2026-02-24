@@ -520,6 +520,270 @@ const sampleProperties = [
     featuresAr: ['تاريخي', 'مرمم', 'عمارة تقليدية', 'فناء'],
     isFeatured: true,
   },
+  // Additional properties to reach 25+
+  {
+    title: 'Smart Home Villa in Al Yasmin',
+    titleAr: 'فيلا ذكية في الياسمين',
+    description:
+      'Ultra-modern smart home with automated systems, solar panels, and sustainable design.',
+    descriptionAr: 'منزل ذكي حديث للغاية مع أنظمة آلية وألواح شمسية وتصميم مستدام.',
+    type: 'villa',
+    category: 'residential',
+    status: 'for_sale',
+    price: 5500000,
+    currency: 'SAR',
+    area: 550,
+    bedrooms: 5,
+    bathrooms: 6,
+    location: {
+      address: 'Al Yasmin District',
+      addressAr: 'حي الياسمين',
+      city: 'Riyadh',
+      cityAr: 'الرياض',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [46.6253, 24.8236] },
+    },
+    images: ['https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=800'],
+    features: ['Smart Home', 'Solar Panels', 'EV Charging', 'Home Theater', 'Wine Cellar'],
+    featuresAr: ['منزل ذكي', 'ألواح شمسية', 'شحن سيارات كهربائية', 'مسرح منزلي', 'قبو'],
+    isFeatured: true,
+  },
+  {
+    title: 'Executive Office Suite in Granada Mall',
+    titleAr: 'مكتب تنفيذي في غرناطة مول',
+    description:
+      'Premium office suite in Granada Business Center with meeting rooms and reception.',
+    descriptionAr: 'جناح مكتبي متميز في مركز غرناطة للأعمال مع قاعات اجتماعات واستقبال.',
+    type: 'office',
+    category: 'commercial',
+    status: 'for_rent',
+    price: 22000,
+    currency: 'SAR',
+    area: 300,
+    location: {
+      address: 'Granada Business Center',
+      addressAr: 'مركز غرناطة للأعمال',
+      city: 'Riyadh',
+      cityAr: 'الرياض',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [46.7234, 24.7456] },
+    },
+    images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=800'],
+    features: ['Furnished', 'Meeting Rooms', 'Reception', 'Parking', 'Cafeteria Access'],
+    featuresAr: ['مفروش', 'قاعات اجتماعات', 'استقبال', 'موقف سيارات', 'كافتيريا'],
+    isFeatured: false,
+  },
+  {
+    title: 'Waterfront Apartment in Obhur',
+    titleAr: 'شقة على الواجهة البحرية في أبحر',
+    description:
+      'Stunning waterfront apartment with private beach access and panoramic Red Sea views.',
+    descriptionAr:
+      'شقة رائعة على الواجهة البحرية مع وصول خاص للشاطئ وإطلالات بانورامية على البحر الأحمر.',
+    type: 'apartment',
+    category: 'residential',
+    status: 'for_sale',
+    price: 2800000,
+    currency: 'SAR',
+    area: 220,
+    bedrooms: 3,
+    bathrooms: 3,
+    location: {
+      address: 'Obhur Waterfront',
+      addressAr: 'واجهة أبحر البحرية',
+      city: 'Jeddah',
+      cityAr: 'جدة',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [39.0987, 21.7123] },
+    },
+    images: ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800'],
+    features: ['Beach Access', 'Sea View', 'Pool', 'Gym', 'Concierge'],
+    featuresAr: ['وصول للشاطئ', 'إطلالة بحرية', 'مسبح', 'صالة رياضية', 'خدمة استقبال'],
+    isFeatured: true,
+  },
+  {
+    title: 'Logistics Hub in Eastern Province',
+    titleAr: 'مركز لوجستي في المنطقة الشرقية',
+    description: 'Strategic logistics facility with cold storage, truck docks, and office space.',
+    descriptionAr: 'مرفق لوجستي استراتيجي مع تخزين بارد ومرافق شحن ومساحة مكتبية.',
+    type: 'warehouse',
+    category: 'industrial',
+    status: 'for_sale',
+    price: 12000000,
+    currency: 'SAR',
+    area: 8000,
+    location: {
+      address: 'Industrial Zone, Dammam',
+      addressAr: 'المنطقة الصناعية، الدمام',
+      city: 'Dammam',
+      cityAr: 'الدمام',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [50.1234, 26.4567] },
+    },
+    images: ['https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800'],
+    features: ['Cold Storage', 'Truck Docks', 'Office', '24/7 Security', 'Rail Access'],
+    featuresAr: ['تخزين بارد', 'مرافق شحن', 'مكتب', 'أمن على مدار الساعة', 'وصول للسكك الحديدية'],
+    isFeatured: false,
+  },
+  {
+    title: 'Budget Apartment in Al Batha',
+    titleAr: 'شقة اقتصادية في البطحاء',
+    description:
+      'Affordable apartment ideal for singles or small families. Close to public transport.',
+    descriptionAr:
+      'شقة بأسعار معقولة مثالية للأفراد أو العائلات الصغيرة. قريبة من المواصلات العامة.',
+    type: 'apartment',
+    category: 'residential',
+    status: 'for_rent',
+    price: 1500,
+    currency: 'SAR',
+    area: 60,
+    bedrooms: 2,
+    bathrooms: 1,
+    location: {
+      address: 'Al Batha District',
+      addressAr: 'حي البطحاء',
+      city: 'Riyadh',
+      cityAr: 'الرياض',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [46.7145, 24.6345] },
+    },
+    images: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800'],
+    features: ['AC', 'Kitchen', 'Near Metro', 'Shops Nearby'],
+    featuresAr: ['مكيف', 'مطبخ', 'قرب المترو', 'محلات قريبة'],
+    isFeatured: false,
+  },
+  {
+    title: 'Golf Course Villa in KAEC',
+    titleAr: 'فيلا على ملعب الغولف في كايك',
+    description: 'Exclusive villa overlooking Royal Greens Golf Course with club membership.',
+    descriptionAr: 'فيلا حصرية تطل على ملعب رويال غرينز للغولف مع عضوية النادي.',
+    type: 'villa',
+    category: 'residential',
+    status: 'for_sale',
+    price: 7500000,
+    currency: 'SAR',
+    area: 700,
+    bedrooms: 6,
+    bathrooms: 7,
+    location: {
+      address: 'Royal Greens, KAEC',
+      addressAr: 'رويال غرينز، كايك',
+      city: 'King Abdullah Economic City',
+      cityAr: 'مدينة الملك عبدالله الاقتصادية',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [39.0654, 22.4123] },
+    },
+    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'],
+    features: ['Golf View', 'Club Membership', 'Private Pool', 'Garden', 'Guest House'],
+    featuresAr: ['إطلالة غولف', 'عضوية نادي', 'مسبح خاص', 'حديقة', 'بيت ضيافة'],
+    isFeatured: true,
+  },
+  {
+    title: 'Restaurant Space in Al Tahlia',
+    titleAr: 'مساحة مطعم في التحلية',
+    description: 'Prime restaurant location with outdoor seating area. High foot traffic zone.',
+    descriptionAr: 'موقع مطعم متميز مع منطقة جلوس خارجية. منطقة ذات حركة مرور عالية.',
+    type: 'office',
+    category: 'commercial',
+    status: 'for_rent',
+    price: 35000,
+    currency: 'SAR',
+    area: 400,
+    location: {
+      address: 'Tahlia Street',
+      addressAr: 'شارع التحلية',
+      city: 'Riyadh',
+      cityAr: 'الرياض',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [46.6789, 24.7012] },
+    },
+    images: ['https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800'],
+    features: ['Outdoor Seating', 'Commercial Kitchen', 'Parking', 'Storage', 'High Visibility'],
+    featuresAr: ['جلوس خارجي', 'مطبخ تجاري', 'موقف سيارات', 'مخزن', 'رؤية عالية'],
+    isFeatured: false,
+  },
+  {
+    title: 'Residential Land in Diriyah',
+    titleAr: 'أرض سكنية في الدرعية',
+    description: 'Premium land near UNESCO heritage site. Perfect for heritage-style villa.',
+    descriptionAr: 'أرض متميزة بالقرب من موقع التراث العالمي. مثالية لفيلا بطراز تراثي.',
+    type: 'land',
+    category: 'residential',
+    status: 'for_sale',
+    price: 3500000,
+    currency: 'SAR',
+    area: 1200,
+    location: {
+      address: 'Diriyah Gate',
+      addressAr: 'بوابة الدرعية',
+      city: 'Riyadh',
+      cityAr: 'الرياض',
+      country: 'Saudi Arabia',
+      countryAr: 'السعودية',
+      coordinates: { type: 'Point', coordinates: [46.5723, 24.7345] },
+    },
+    images: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800'],
+    features: [
+      'Near Heritage Site',
+      'Premium Location',
+      'Investment Opportunity',
+      'Development Ready',
+    ],
+    featuresAr: ['قرب موقع تراثي', 'موقع متميز', 'فرصة استثمارية', 'جاهز للتطوير'],
+    isFeatured: true,
+  },
+];
+
+// Demo users data
+const demoUsers = [
+  {
+    email: 'buyer@upgreat.com',
+    password: 'Demo123!',
+    fullName: 'Ahmed Al-Buyer',
+    fullNameAr: 'أحمد المشتري',
+    phone: '+966501234567',
+    role: 'buyer' as const,
+    isActive: true,
+    isVerified: true,
+  },
+  {
+    email: 'owner@upgreat.com',
+    password: 'Demo123!',
+    fullName: 'Mohammed Al-Owner',
+    fullNameAr: 'محمد المالك',
+    phone: '+966502345678',
+    role: 'owner' as const,
+    isActive: true,
+    isVerified: true,
+  },
+  {
+    email: 'agent@upgreat.com',
+    password: 'Demo123!',
+    fullName: 'Sara Al-Agent',
+    fullNameAr: 'سارة الوكيلة',
+    phone: '+966503456789',
+    role: 'agent' as const,
+    isActive: true,
+    isVerified: true,
+  },
+  {
+    email: 'admin@upgreat.com',
+    password: 'Admin123!',
+    fullName: 'Admin User',
+    fullNameAr: 'مدير النظام',
+    phone: '+966504567890',
+    role: 'admin' as const,
+    isActive: true,
+    isVerified: true,
+  },
 ];
 
 async function seed() {
@@ -530,36 +794,33 @@ async function seed() {
     await mongoose.connect(config.mongoUri);
     console.log('📦 Connected to MongoDB');
 
-    // Create demo user if not exists
-    let demoUser = await User.findOne({ email: 'demo@upgreat.com' });
+    // Create demo users
+    const createdUsers: Record<string, (typeof demoUsers)[0] & { _id: unknown }> = {};
 
-    if (!demoUser) {
-      // Don't hash password manually - the User model's pre-save hook does it
-      demoUser = await User.create({
-        email: 'demo@upgreat.com',
-        password: 'Demo123!',
-        fullName: 'Demo User',
-        fullNameAr: 'مستخدم تجريبي',
-        role: 'owner',
-        isActive: true,
-        isVerified: true,
-      });
-      console.log('👤 Created demo user: demo@upgreat.com / Demo123!');
-    } else {
-      // Update password in case it was double-hashed
-      demoUser.password = 'Demo123!';
-      await demoUser.save();
-      console.log('👤 Demo user password reset');
+    for (const userData of demoUsers) {
+      let user = await User.findOne({ email: userData.email });
+
+      if (!user) {
+        user = await User.create(userData);
+        console.log(`👤 Created ${userData.role}: ${userData.email} / ${userData.password}`);
+      } else {
+        user.password = userData.password;
+        await user.save();
+        console.log(`👤 Reset password for ${userData.role}: ${userData.email}`);
+      }
+
+      createdUsers[userData.role] = { ...userData, _id: user._id };
     }
 
     // Clear existing properties
     await Property.deleteMany({});
     console.log('🗑️  Cleared existing properties');
 
-    // Insert sample properties
-    const propertiesWithOwner = sampleProperties.map((p) => ({
+    // Assign properties to different owners (owner and agent)
+    const ownerIds = [createdUsers.owner._id, createdUsers.agent._id];
+    const propertiesWithOwner = sampleProperties.map((p, index) => ({
       ...p,
-      owner: demoUser!._id,
+      owner: ownerIds[index % ownerIds.length],
       viewCount: Math.floor(Math.random() * 200) + 50,
     }));
 
@@ -569,9 +830,15 @@ async function seed() {
     console.log('');
     console.log('🎉 Seed completed successfully!');
     console.log('');
-    console.log('Demo Account:');
-    console.log('  Email: demo@upgreat.com');
-    console.log('  Password: Demo123!');
+    console.log('Demo Accounts:');
+    console.log('┌──────────────────────────────────────────────────┐');
+    console.log('│ Role     │ Email                │ Password      │');
+    console.log('├──────────────────────────────────────────────────┤');
+    console.log('│ Buyer    │ buyer@upgreat.com    │ Demo123!      │');
+    console.log('│ Owner    │ owner@upgreat.com    │ Demo123!      │');
+    console.log('│ Agent    │ agent@upgreat.com    │ Demo123!      │');
+    console.log('│ Admin    │ admin@upgreat.com    │ Admin123!     │');
+    console.log('└──────────────────────────────────────────────────┘');
     console.log('');
 
     await mongoose.disconnect();

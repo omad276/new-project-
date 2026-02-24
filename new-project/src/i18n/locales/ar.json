@@ -20,7 +20,11 @@
     "submit": "إرسال",
     "confirm": "تأكيد",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "noResults": "لا توجد نتائج",
+    "showing": "عرض",
+    "of": "من",
+    "results": "نتيجة"
   },
   "nav": {
     "home": "الرئيسية",
@@ -54,7 +58,33 @@
     "warehouse": "مستودع",
     "commercial": "تجاري",
     "residential": "سكني",
-    "industrial": "صناعي"
+    "industrial": "صناعي",
+    "features": "المميزات",
+    "description": "الوصف",
+    "contactOwner": "تواصل مع المالك",
+    "addToFavorites": "أضف للمفضلة",
+    "removeFromFavorites": "إزالة من المفضلة",
+    "share": "مشاركة",
+    "report": "إبلاغ",
+    "viewDetails": "عرض التفاصيل"
+  },
+  "messages": {
+    "title": "الرسائل",
+    "conversations": "المحادثات",
+    "newMessage": "رسالة جديدة",
+    "typeMessage": "اكتب رسالة...",
+    "send": "إرسال",
+    "noMessages": "لا توجد رسائل",
+    "startConversation": "ابدأ محادثة",
+    "unread": "غير مقروءة"
+  },
+  "favorites": {
+    "title": "المفضلة",
+    "collections": "المجموعات",
+    "createCollection": "إنشاء مجموعة",
+    "addToCollection": "أضف للمجموعة",
+    "noFavorites": "لا توجد عقارات مفضلة",
+    "savedProperties": "العقارات المحفوظة"
   },
   "auth": {
     "email": "البريد الإلكتروني",

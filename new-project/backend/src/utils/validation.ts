@@ -596,3 +596,21 @@ export const paginationQuerySchema = z.object({
 });
 
 export type PaginationQueryInput = z.output<typeof paginationQuerySchema>;
+
+// ============================================
+// Message Validation Schemas
+// ============================================
+
+export const sendMessageSchema = z.object({
+  receiverId: z.string().min(1, 'Receiver ID is required'),
+  content: z.string().min(1, 'Message content is required').max(5000, 'Message too long'),
+  propertyId: z.string().optional(),
+});
+
+export const messageQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type MessageQueryInput = z.output<typeof messageQuerySchema>;

@@ -20,7 +20,11 @@
     "submit": "Submit",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "noResults": "No results found",
+    "showing": "Showing",
+    "of": "of",
+    "results": "results"
   },
   "nav": {
     "home": "Home",
@@ -46,7 +50,38 @@
     "office": "Office",
     "land": "Land",
     "building": "Building",
-    "sqm": "sqm"
+    "sqm": "sqm",
+    "factory": "Factory",
+    "warehouse": "Warehouse",
+    "commercial": "Commercial",
+    "residential": "Residential",
+    "industrial": "Industrial",
+    "features": "Features",
+    "description": "Description",
+    "contactOwner": "Contact Owner",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "share": "Share",
+    "report": "Report",
+    "viewDetails": "View Details"
+  },
+  "messages": {
+    "title": "Messages",
+    "conversations": "Conversations",
+    "newMessage": "New Message",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "noMessages": "No messages yet",
+    "startConversation": "Start a conversation",
+    "unread": "Unread"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "collections": "Collections",
+    "createCollection": "Create Collection",
+    "addToCollection": "Add to Collection",
+    "noFavorites": "No favorites yet",
+    "savedProperties": "Saved Properties"
   },
   "auth": {
     "email": "Email",
