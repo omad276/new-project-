@@ -15,6 +15,7 @@ export const apiLimiter = rateLimit({
   max: config.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false }, // Disable X-Forwarded-For validation for Render
   handler: (_req, _res, next) => {
     next(AppError.tooManyRequests('Too many requests, please try again later'));
   },

@@ -15,6 +15,9 @@ import { apiLimiter } from './middleware/rateLimit.js';
 
 const app = express();
 
+// Trust proxy for Render deployment (needed for rate limiting and secure cookies)
+app.set('trust proxy', 1);
+
 // ============================================
 // Security Middleware
 // ============================================
@@ -31,12 +34,17 @@ app.use(
         return callback(null, true);
       }
 
-      // Check against allowed origins
-      if (config.cors.origins.includes(origin)) {
+      // In production, allow configured origins or Vercel preview URLs
+      const allowedOrigins = config.cors.origins;
+      if (allowedOrigins.some((allowed) => origin === allowed || origin.includes('vercel.app'))) {
         return callback(null, true);
       }
 
-      callback(new Error('Not allowed by CORS'));
+      // Log rejected origin for debugging
+      console.log(`CORS rejected origin: ${origin}, allowed: ${allowedOrigins.join(', ')}`);
+
+      // Return false instead of error to avoid 500
+      callback(null, false);
     },
     credentials: config.cors.credentials,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
