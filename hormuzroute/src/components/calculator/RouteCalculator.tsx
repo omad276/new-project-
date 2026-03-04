@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { RouteInput, CalculatedRoute, CargoType, Priority } from '@/types';
+import { useCallback } from 'react';
+import { CalculatedRoute, CargoType, Priority } from '@/types';
 import { ORIGIN_PORTS, DESTINATION_PORTS } from '@/lib/routes-data';
+import { useCalculatorStore, useHistoryStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,45 +28,47 @@ const priorityOptions = [
 ];
 
 export function RouteCalculator() {
-  const [formData, setFormData] = useState<RouteInput>({
-    origin: 'ras-tanura',
-    destination: 'rotterdam',
-    cargoType: 'crude',
-    tons: 100000,
-    priority: 'cost',
-  });
+  // Calculator store
+  const {
+    formData,
+    setFormData,
+    results,
+    setResults,
+    isCalculating,
+    setIsCalculating,
+    error,
+    setError,
+    aiContent,
+    setAIContent,
+    aiLoading,
+    setAILoading,
+    aiError,
+    setAIError,
+    aiEnabled,
+    setAIEnabled,
+  } = useCalculatorStore();
 
-  const [results, setResults] = useState<CalculatedRoute[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // AI State
-  const [aiContent, setAiContent] = useState<string>('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiEnabled, setAiEnabled] = useState(true);
+  // History store
+  const { addEntry } = useHistoryStore();
 
   const fetchAIAnalysis = useCallback(
-    async (routes: CalculatedRoute[], input: RouteInput) => {
-      setAiLoading(true);
-      setAiError(null);
-      setAiContent('');
+    async (routes: CalculatedRoute[]) => {
+      setAILoading(true);
+      setAIError(null);
+      setAIContent('');
 
       try {
         const response = await fetch('/api/ai-advisor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ routes, input }),
+          body: JSON.stringify({ routes, input: formData }),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || 'Failed to get AI analysis'
-          );
+          throw new Error(errorData.message || 'Failed to get AI analysis');
         }
 
-        // Handle streaming response
         const reader = response.body?.getReader();
         if (!reader) {
           throw new Error('No response body');
@@ -80,26 +83,24 @@ export function RouteCalculator() {
 
           const chunk = decoder.decode(value, { stream: true });
           content += chunk;
-          setAiContent(content);
+          setAIContent(content);
         }
       } catch (err) {
-        setAiError(
-          err instanceof Error ? err.message : 'AI analysis failed'
-        );
+        setAIError(err instanceof Error ? err.message : 'AI analysis failed');
       } finally {
-        setAiLoading(false);
+        setAILoading(false);
       }
     },
-    []
+    [formData, setAIContent, setAIError, setAILoading]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsCalculating(true);
     setError(null);
     setResults(null);
-    setAiContent('');
-    setAiError(null);
+    setAIContent('');
+    setAIError(null);
 
     try {
       const response = await fetch('/api/calculate-routes', {
@@ -115,20 +116,23 @@ export function RouteCalculator() {
       const data = await response.json();
       setResults(data.routes);
 
+      // Add to history
+      addEntry(formData, data.routes);
+
       // Trigger AI analysis if enabled
       if (aiEnabled && data.routes.length > 0) {
-        fetchAIAnalysis(data.routes, formData);
+        fetchAIAnalysis(data.routes);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      setIsCalculating(false);
     }
   };
 
   const handleRetryAI = () => {
     if (results) {
-      fetchAIAnalysis(results, formData);
+      fetchAIAnalysis(results);
     }
   };
 
@@ -161,9 +165,7 @@ export function RouteCalculator() {
                 id="origin"
                 options={originOptions}
                 value={formData.origin}
-                onChange={(e) =>
-                  setFormData({ ...formData, origin: e.target.value })
-                }
+                onChange={(e) => setFormData({ origin: e.target.value })}
                 className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
@@ -176,9 +178,7 @@ export function RouteCalculator() {
                 id="destination"
                 options={destinationOptions}
                 value={formData.destination}
-                onChange={(e) =>
-                  setFormData({ ...formData, destination: e.target.value })
-                }
+                onChange={(e) => setFormData({ destination: e.target.value })}
                 className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
@@ -192,10 +192,7 @@ export function RouteCalculator() {
                 options={cargoTypeOptions}
                 value={formData.cargoType}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    cargoType: e.target.value as CargoType,
-                  })
+                  setFormData({ cargoType: e.target.value as CargoType })
                 }
                 className="bg-slate-700 border-slate-600 text-white"
               />
@@ -212,9 +209,7 @@ export function RouteCalculator() {
                 max={500000}
                 step={1000}
                 value={formData.tons}
-                onChange={(e) =>
-                  setFormData({ ...formData, tons: parseInt(e.target.value) })
-                }
+                onChange={(e) => setFormData({ tons: parseInt(e.target.value) })}
                 className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
@@ -228,10 +223,7 @@ export function RouteCalculator() {
                 options={priorityOptions}
                 value={formData.priority}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    priority: e.target.value as Priority,
-                  })
+                  setFormData({ priority: e.target.value as Priority })
                 }
                 className="bg-slate-700 border-slate-600 text-white"
               />
@@ -245,7 +237,7 @@ export function RouteCalculator() {
               </div>
               <button
                 type="button"
-                onClick={() => setAiEnabled(!aiEnabled)}
+                onClick={() => setAIEnabled(!aiEnabled)}
                 className={`relative w-10 h-5 rounded-full transition-colors ${
                   aiEnabled ? 'bg-orange-500' : 'bg-slate-600'
                 }`}
@@ -260,10 +252,10 @@ export function RouteCalculator() {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isCalculating}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
             >
-              {loading ? (
+              {isCalculating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Calculating...
@@ -288,11 +280,7 @@ export function RouteCalculator() {
             </h2>
             <div className="space-y-4">
               {results.map((route, index) => (
-                <RouteCard
-                  key={route.route.id}
-                  route={route}
-                  rank={index + 1}
-                />
+                <RouteCard key={route.route.id} route={route} rank={index + 1} />
               ))}
             </div>
 
