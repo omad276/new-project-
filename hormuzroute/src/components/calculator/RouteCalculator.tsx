@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { RouteInput, CalculatedRoute, CargoType, Priority } from '@/types';
 import { ORIGIN_PORTS, DESTINATION_PORTS } from '@/lib/routes-data';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { RouteCard } from './RouteCard';
-import { Calculator, Loader2 } from 'lucide-react';
+import { AIInsightPanel } from './AIInsightPanel';
+import { Calculator, Loader2, Sparkles } from 'lucide-react';
 
 const cargoTypeOptions = [
   { value: 'crude', label: 'Crude Oil' },
@@ -38,10 +39,67 @@ export function RouteCalculator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI State
+  const [aiContent, setAiContent] = useState<string>('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(true);
+
+  const fetchAIAnalysis = useCallback(
+    async (routes: CalculatedRoute[], input: RouteInput) => {
+      setAiLoading(true);
+      setAiError(null);
+      setAiContent('');
+
+      try {
+        const response = await fetch('/api/ai-advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ routes, input }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || 'Failed to get AI analysis'
+          );
+        }
+
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        const decoder = new TextDecoder();
+        let content = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          content += chunk;
+          setAiContent(content);
+        }
+      } catch (err) {
+        setAiError(
+          err instanceof Error ? err.message : 'AI analysis failed'
+        );
+      } finally {
+        setAiLoading(false);
+      }
+    },
+    []
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setResults(null);
+    setAiContent('');
+    setAiError(null);
 
     try {
       const response = await fetch('/api/calculate-routes', {
@@ -56,10 +114,21 @@ export function RouteCalculator() {
 
       const data = await response.json();
       setResults(data.routes);
+
+      // Trigger AI analysis if enabled
+      if (aiEnabled && data.routes.length > 0) {
+        fetchAIAnalysis(data.routes, formData);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetryAI = () => {
+    if (results) {
+      fetchAIAnalysis(results, formData);
     }
   };
 
@@ -168,6 +237,27 @@ export function RouteCalculator() {
               />
             </div>
 
+            {/* AI Toggle */}
+            <div className="flex items-center justify-between py-2 px-3 bg-slate-700/50 rounded-md">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-slate-300">AI Analysis</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiEnabled(!aiEnabled)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${
+                  aiEnabled ? 'bg-orange-500' : 'bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                    aiEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
             <Button
               type="submit"
               disabled={loading}
@@ -205,6 +295,18 @@ export function RouteCalculator() {
                 />
               ))}
             </div>
+
+            {/* AI Insight Panel */}
+            {aiEnabled && (aiContent || aiLoading || aiError) && (
+              <div className="mt-6">
+                <AIInsightPanel
+                  content={aiContent}
+                  isLoading={aiLoading}
+                  error={aiError}
+                  onRetry={handleRetryAI}
+                />
+              </div>
+            )}
           </>
         ) : (
           <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center min-h-[400px]">
@@ -217,6 +319,12 @@ export function RouteCalculator() {
                 Fill in the parameters on the left and click Calculate to see
                 optimized route recommendations.
               </p>
+              {aiEnabled && (
+                <p className="text-orange-500/70 text-sm mt-4 flex items-center justify-center gap-1">
+                  <Sparkles className="h-4 w-4" />
+                  AI Analysis enabled
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

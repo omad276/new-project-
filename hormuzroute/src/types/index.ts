@@ -56,3 +56,31 @@ export interface CalculateRoutesResponse {
   routes: CalculatedRoute[];
   input: RouteInput;
 }
+
+// AI Advisor Types
+export interface AIRouteInsight {
+  routeId: string;
+  recommendation: 'recommended' | 'acceptable' | 'not-recommended';
+  reasoning: string;
+  riskFactors: string[];
+  advantages: string[];
+}
+
+export interface AIAnalysis {
+  summary: string;
+  topRecommendation: string;
+  routeInsights: AIRouteInsight[];
+  marketContext: string;
+  riskAssessment: string;
+  costOptimizationTips: string[];
+}
+
+export interface AIAdvisorRequest {
+  routes: CalculatedRoute[];
+  input: RouteInput;
+}
+
+export interface AIAdvisorResponse {
+  analysis: AIAnalysis;
+  generatedAt: string;
+}
