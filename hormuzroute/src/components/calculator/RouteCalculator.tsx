@@ -3,7 +3,8 @@
 import { useCallback } from 'react';
 import { CalculatedRoute, CargoType, Priority } from '@/types';
 import { ORIGIN_PORTS, DESTINATION_PORTS } from '@/lib/routes-data';
-import { useCalculatorStore, useHistoryStore } from '@/stores';
+import { useCalculatorStore, FREE_ANALYSIS_LIMIT } from '@/stores/calculator-store';
+import { useHistoryStore } from '@/stores/history-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { RouteCard } from './RouteCard';
 import { AIInsightPanel } from './AIInsightPanel';
+import { PaywallModal } from '@/components/paywall/PaywallModal';
 import { Calculator, Loader2, Sparkles } from 'lucide-react';
 
 const cargoTypeOptions = [
@@ -46,13 +48,25 @@ export function RouteCalculator() {
     setAIError,
     aiEnabled,
     setAIEnabled,
+    hasReachedLimit,
+    openPaywall,
+    incrementAnalysisCount,
+    getRemainingAnalyses,
   } = useCalculatorStore();
 
   // History store
   const { addEntry } = useHistoryStore();
 
+  const remainingAnalyses = getRemainingAnalyses();
+
   const fetchAIAnalysis = useCallback(
     async (routes: CalculatedRoute[]) => {
+      // Check limit before running AI
+      if (hasReachedLimit()) {
+        openPaywall();
+        return;
+      }
+
       setAILoading(true);
       setAIError(null);
       setAIContent('');
@@ -68,6 +82,9 @@ export function RouteCalculator() {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Failed to get AI analysis');
         }
+
+        // Increment count after successful start
+        incrementAnalysisCount();
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -91,7 +108,15 @@ export function RouteCalculator() {
         setAILoading(false);
       }
     },
-    [formData, setAIContent, setAIError, setAILoading]
+    [
+      formData,
+      setAIContent,
+      setAIError,
+      setAILoading,
+      hasReachedLimit,
+      openPaywall,
+      incrementAnalysisCount,
+    ]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,176 +172,188 @@ export function RouteCalculator() {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card className="bg-slate-800 border-slate-700 lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-orange-500" />
-            Route Parameters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="origin" className="text-slate-300">
-                Origin Port
-              </Label>
-              <Select
-                id="origin"
-                options={originOptions}
-                value={formData.origin}
-                onChange={(e) => setFormData({ origin: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="destination" className="text-slate-300">
-                Destination Port
-              </Label>
-              <Select
-                id="destination"
-                options={destinationOptions}
-                value={formData.destination}
-                onChange={(e) => setFormData({ destination: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cargoType" className="text-slate-300">
-                Cargo Type
-              </Label>
-              <Select
-                id="cargoType"
-                options={cargoTypeOptions}
-                value={formData.cargoType}
-                onChange={(e) =>
-                  setFormData({ cargoType: e.target.value as CargoType })
-                }
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tons" className="text-slate-300">
-                Cargo Volume (tons)
-              </Label>
-              <Input
-                id="tons"
-                type="number"
-                min={1000}
-                max={500000}
-                step={1000}
-                value={formData.tons}
-                onChange={(e) => setFormData({ tons: parseInt(e.target.value) })}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="priority" className="text-slate-300">
-                Optimization Priority
-              </Label>
-              <Select
-                id="priority"
-                options={priorityOptions}
-                value={formData.priority}
-                onChange={(e) =>
-                  setFormData({ priority: e.target.value as Priority })
-                }
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            {/* AI Toggle */}
-            <div className="flex items-center justify-between py-2 px-3 bg-slate-700/50 rounded-md">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-                <span className="text-sm text-slate-300">AI Analysis</span>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bg-slate-800 border-slate-700 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-orange-500" />
+              Route Parameters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="origin" className="text-slate-300">
+                  Origin Port
+                </Label>
+                <Select
+                  id="origin"
+                  options={originOptions}
+                  value={formData.origin}
+                  onChange={(e) => setFormData({ origin: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
               </div>
-              <button
-                type="button"
-                onClick={() => setAIEnabled(!aiEnabled)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${
-                  aiEnabled ? 'bg-orange-500' : 'bg-slate-600'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-                    aiEnabled ? 'translate-x-5' : 'translate-x-0'
+
+              <div className="space-y-2">
+                <Label htmlFor="destination" className="text-slate-300">
+                  Destination Port
+                </Label>
+                <Select
+                  id="destination"
+                  options={destinationOptions}
+                  value={formData.destination}
+                  onChange={(e) => setFormData({ destination: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cargoType" className="text-slate-300">
+                  Cargo Type
+                </Label>
+                <Select
+                  id="cargoType"
+                  options={cargoTypeOptions}
+                  value={formData.cargoType}
+                  onChange={(e) =>
+                    setFormData({ cargoType: e.target.value as CargoType })
+                  }
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tons" className="text-slate-300">
+                  Cargo Volume (tons)
+                </Label>
+                <Input
+                  id="tons"
+                  type="number"
+                  min={1000}
+                  max={500000}
+                  step={1000}
+                  value={formData.tons}
+                  onChange={(e) => setFormData({ tons: parseInt(e.target.value) })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority" className="text-slate-300">
+                  Optimization Priority
+                </Label>
+                <Select
+                  id="priority"
+                  options={priorityOptions}
+                  value={formData.priority}
+                  onChange={(e) =>
+                    setFormData({ priority: e.target.value as Priority })
+                  }
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              {/* AI Toggle with Usage Counter */}
+              <div className="flex items-center justify-between py-2 px-3 bg-slate-700/50 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500" />
+                  <div>
+                    <span className="text-sm text-slate-300">AI Analysis</span>
+                    {aiEnabled && (
+                      <span className="text-xs text-slate-500 ml-2">
+                        {remainingAnalyses}/{FREE_ANALYSIS_LIMIT} remaining
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAIEnabled(!aiEnabled)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${
+                    aiEnabled ? 'bg-orange-500' : 'bg-slate-600'
                   }`}
-                />
-              </button>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isCalculating}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              {isCalculating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Calculating...
-                </>
-              ) : (
-                'Calculate Routes'
-              )}
-            </Button>
-
-            {error && (
-              <p className="text-red-500 text-sm text-center">{error}</p>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="lg:col-span-2 space-y-4">
-        {results ? (
-          <>
-            <h2 className="text-xl font-semibold text-white">
-              Recommended Routes
-            </h2>
-            <div className="space-y-4">
-              {results.map((route, index) => (
-                <RouteCard key={route.route.id} route={route} rank={index + 1} />
-              ))}
-            </div>
-
-            {/* AI Insight Panel */}
-            {aiEnabled && (aiContent || aiLoading || aiError) && (
-              <div className="mt-6">
-                <AIInsightPanel
-                  content={aiContent}
-                  isLoading={aiLoading}
-                  error={aiError}
-                  onRetry={handleRetryAI}
-                />
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                      aiEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
-            )}
-          </>
-        ) : (
-          <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center min-h-[400px]">
-            <CardContent className="text-center py-12">
-              <Calculator className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-400">
-                Configure Your Route
-              </h3>
-              <p className="text-slate-500 mt-2 max-w-sm">
-                Fill in the parameters on the left and click Calculate to see
-                optimized route recommendations.
-              </p>
-              {aiEnabled && (
-                <p className="text-orange-500/70 text-sm mt-4 flex items-center justify-center gap-1">
-                  <Sparkles className="h-4 w-4" />
-                  AI Analysis enabled
-                </p>
+
+              <Button
+                type="submit"
+                disabled={isCalculating}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {isCalculating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  'Calculate Routes'
+                )}
+              </Button>
+
+              {error && (
+                <p className="text-red-500 text-sm text-center">{error}</p>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-2 space-y-4">
+          {results ? (
+            <>
+              <h2 className="text-xl font-semibold text-white">
+                Recommended Routes
+              </h2>
+              <div className="space-y-4">
+                {results.map((route, index) => (
+                  <RouteCard key={route.route.id} route={route} rank={index + 1} />
+                ))}
+              </div>
+
+              {/* AI Insight Panel */}
+              {aiEnabled && (aiContent || aiLoading || aiError) && (
+                <div className="mt-6">
+                  <AIInsightPanel
+                    content={aiContent}
+                    isLoading={aiLoading}
+                    error={aiError}
+                    onRetry={handleRetryAI}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center min-h-[400px]">
+              <CardContent className="text-center py-12">
+                <Calculator className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-400">
+                  Configure Your Route
+                </h3>
+                <p className="text-slate-500 mt-2 max-w-sm">
+                  Fill in the parameters on the left and click Calculate to see
+                  optimized route recommendations.
+                </p>
+                {aiEnabled && (
+                  <p className="text-orange-500/70 text-sm mt-4 flex items-center justify-center gap-1">
+                    <Sparkles className="h-4 w-4" />
+                    AI Analysis enabled ({remainingAnalyses} free remaining)
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Paywall Modal */}
+      <PaywallModal />
+    </>
   );
 }

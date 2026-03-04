@@ -117,7 +117,7 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  <Link href="/calculator">
+                  <Link href="/app">
                     <Button
                       className={`w-full ${
                         plan.highlighted

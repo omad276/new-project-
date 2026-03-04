@@ -14,7 +14,7 @@ export function Header() {
 
         <nav className="hidden md:flex items-center gap-6">
           <Link
-            href="/calculator"
+            href="/app"
             className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             Calculator
@@ -29,7 +29,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <Link
-            href="/calculator"
+            href="/app"
             className="inline-flex h-9 items-center justify-center rounded-md bg-orange-500 px-4 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             Get Started
