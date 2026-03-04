@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCalculatorStore, FREE_ANALYSIS_LIMIT } from '@/stores/calculator-store';
+import { useAuth } from '@/components/auth';
 import { Button } from '@/components/ui/button';
-import { X, Sparkles, Shield, TrendingUp, Zap } from 'lucide-react';
-
-const CONTACT_EMAIL = 'contact@hormuzroute.com';
-const MAILTO_LINK = `mailto:${CONTACT_EMAIL}?subject=HormuzRoute%20Subscription%20Request&body=I%20would%20like%20to%20request%20access%20to%20HormuzRoute%20Pro.`;
+import { X, Sparkles, Shield, TrendingUp, Zap, Loader2 } from 'lucide-react';
 
 const valuePoints = [
   {
@@ -32,11 +33,42 @@ const valuePoints = [
 
 export function PaywallModal() {
   const { isPaywallOpen, closePaywall, analysisCount } = useCalculatorStore();
+  const { user, loading: authLoading } = useAuth();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const router = useRouter();
 
   if (!isPaywallOpen) return null;
 
-  const handleRequestAccess = () => {
-    window.location.href = MAILTO_LINK;
+  const handleUpgrade = async () => {
+    if (!user) {
+      // Redirect to signup if not logged in
+      closePaywall();
+      router.push('/signup?redirect=/app');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ plan: 'pro' }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error) {
+        console.error('Checkout error:', data.error);
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   return (
@@ -67,7 +99,9 @@ export function PaywallModal() {
           </h2>
           <p className="text-slate-400">
             You&apos;ve used {analysisCount} of {FREE_ANALYSIS_LIMIT} free AI analyses.
-            Upgrade to continue optimizing your maritime routes.
+            {user
+              ? ' Upgrade to continue optimizing your maritime routes.'
+              : ' Sign up to continue optimizing your maritime routes.'}
           </p>
         </div>
 
@@ -87,16 +121,66 @@ export function PaywallModal() {
         </div>
 
         {/* CTA */}
-        <Button
-          onClick={handleRequestAccess}
-          className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold"
-        >
-          Request Access
-        </Button>
-
-        <p className="text-center text-slate-500 text-sm mt-4">
-          We&apos;ll reach out within 24 hours to set up your account.
-        </p>
+        {authLoading ? (
+          <div className="flex justify-center py-3">
+            <Loader2 className="h-6 w-6 text-orange-500 animate-spin" />
+          </div>
+        ) : user ? (
+          <>
+            <Button
+              onClick={handleUpgrade}
+              disabled={checkoutLoading}
+              className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold"
+            >
+              {checkoutLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Upgrade to Pro - $99/month
+                </>
+              )}
+            </Button>
+            <p className="text-center text-slate-500 text-sm mt-4">
+              Cancel anytime. 7-day money-back guarantee.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <Link
+                href="/signup?redirect=/app"
+                onClick={closePaywall}
+                className="block"
+              >
+                <Button className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Sign Up Free
+                </Button>
+              </Link>
+              <Link
+                href="/login?redirect=/app"
+                onClick={closePaywall}
+                className="block"
+              >
+                <Button
+                  variant="outline"
+                  className="w-full h-12 border-slate-600 text-slate-300 hover:bg-slate-800 text-lg"
+                >
+                  Already have an account? Sign In
+                </Button>
+              </Link>
+            </div>
+            <p className="text-center text-slate-500 text-sm mt-4">
+              Free tier includes 10 analyses per month.
+              <br />
+              Upgrade anytime for unlimited access.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

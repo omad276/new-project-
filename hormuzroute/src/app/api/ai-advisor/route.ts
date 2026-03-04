@@ -1,9 +1,49 @@
 import { NextRequest } from 'next/server';
 import { AIAdvisorRequest } from '@/types';
 import { streamAnalyzeRoutes, createAnthropicClient } from '@/lib/ai-advisor';
+import { createClient } from '@/lib/supabase/server';
+import { canUserAnalyze, recordAnalysis } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Check authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to use AI analysis',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check usage limits
+    const canAnalyze = await canUserAnalyze(supabase, user.id);
+
+    if (!canAnalyze) {
+      return new Response(
+        JSON.stringify({
+          error: 'Limit exceeded',
+          message: 'You have reached your monthly analysis limit. Upgrade to continue.',
+          code: 'USAGE_LIMIT_EXCEEDED',
+        }),
+        {
+          status: 402,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const body: AIAdvisorRequest = await request.json();
 
     if (!body.routes || !body.input) {
@@ -27,6 +67,9 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+
+    // Record the analysis (increment counter)
+    await recordAnalysis(supabase, user.id);
 
     // Create a streaming response
     const encoder = new TextEncoder();
