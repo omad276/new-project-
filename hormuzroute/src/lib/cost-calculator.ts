@@ -7,6 +7,7 @@ import {
   DAILY_VESSEL_COST,
   REFERENCE_VESSEL_CAPACITY,
   LAND_TRANSPORT_COST_PER_KM_TON,
+  HORMUZ_BASE_COST,
 } from './routes-data';
 
 function calculateCostBreakdown(
@@ -101,12 +102,17 @@ export function calculateRoutes(input: RouteInput): CalculatedRoute[] {
 
     const overallScore = calculateOverallScore(costBreakdown, totalDays, riskScore, input.priority);
 
+    // Calculate percentage over Hormuz base cost (when strait is open)
+    const baseCost = HORMUZ_BASE_COST[input.destination] || 1_000_000;
+    const pctOverBase = Math.round(((costBreakdown.total - baseCost) / baseCost) * 100);
+
     results.push({
       route,
       costBreakdown,
       totalDays,
       riskScore,
       overallScore,
+      pctOverBase,
     });
   }
 

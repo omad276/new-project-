@@ -12,7 +12,11 @@ import {
   FileWarning,
   ArrowRight,
   CheckCircle,
+  Ship,
+  Droplets,
+  Clock,
 } from 'lucide-react';
+import { CRISIS_STATS } from '@/lib/routes-data';
 
 const problems = [
   {
@@ -95,6 +99,37 @@ export default function HomePage() {
             <p className="text-slate-500 text-sm mt-6">
               3 free AI analyses included. No credit card required.
             </p>
+          </div>
+        </section>
+
+        {/* Crisis Stats Bar */}
+        <section className="bg-red-950/50 border-y border-red-900/50 py-6">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12">
+              <div className="flex items-center gap-3 text-red-400">
+                <AlertTriangle className="h-5 w-5 animate-pulse" />
+                <span className="text-sm font-semibold uppercase tracking-wide">
+                  Live Crisis Update
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-5 w-5 text-red-500" />
+                  <span className="text-white font-bold">{CRISIS_STATS.tankersStuck}+</span>
+                  <span className="text-slate-400 text-sm">tankers stuck</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5 text-red-500" />
+                  <span className="text-white font-bold">{(CRISIS_STATS.barrelsAtRisk / 1_000_000).toFixed(0)}M</span>
+                  <span className="text-slate-400 text-sm">barrels/day at risk</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-red-500" />
+                  <span className="text-white font-bold">{CRISIS_STATS.percentGlobalOil}%</span>
+                  <span className="text-slate-400 text-sm">of global oil transit</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { CostTable } from './CostTable';
-import { Ship, Clock, ShieldAlert, Trophy } from 'lucide-react';
+import { Ship, Clock, ShieldAlert, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface RouteCardProps {
   route: CalculatedRoute;
@@ -88,7 +88,19 @@ export function RouteCard({ route, rank }: RouteCardProps) {
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <span className="text-slate-400 text-sm">Total Estimated Cost</span>
+          <div>
+            <span className="text-slate-400 text-sm">Total Estimated Cost</span>
+            <div className="flex items-center gap-2 mt-1">
+              {route.pctOverBase > 0 ? (
+                <TrendingUp className="h-4 w-4 text-red-400" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-green-400" />
+              )}
+              <span className={`text-sm font-medium ${route.pctOverBase > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {route.pctOverBase > 0 ? '+' : ''}{route.pctOverBase}% vs Hormuz open
+              </span>
+            </div>
+          </div>
           <span className="text-2xl font-bold text-orange-500">
             {formatCurrency(route.costBreakdown.total)}
           </span>

@@ -8,7 +8,7 @@ export interface Port {
   id: string;
   name: string;
   country: string;
-  region: 'gulf' | 'europe' | 'asia';
+  region: 'gulf' | 'europe' | 'asia' | 'americas';
 }
 
 export interface RouteBase {
@@ -50,6 +50,7 @@ export interface CalculatedRoute {
   totalDays: number;
   riskScore: number;
   overallScore: number;
+  pctOverBase: number; // Percentage cost increase vs Hormuz when open
 }
 
 export interface CalculateRoutesResponse {
