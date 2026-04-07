@@ -12,8 +12,8 @@ export function cn(...inputs: ClassValue[]): string {
  */
 export function formatPrice(
   price: number,
-  currency: string = 'SAR',
-  locale: string = 'ar-SA'
+  currency: string = 'USD',
+  locale: string = 'en-US'
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -26,7 +26,7 @@ export function formatPrice(
 /**
  * Format area with unit
  */
-export function formatArea(area: number, locale: string = 'ar-SA'): string {
+export function formatArea(area: number, locale: string = 'en-US'): string {
   return new Intl.NumberFormat(locale).format(area);
 }
 

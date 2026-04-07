@@ -91,7 +91,7 @@ export function MortgageCalculator({ initialPrice = 1000000, className = '' }: M
               className="pl-10"
               placeholder="Enter property price"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">SAR</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">USD</span>
           </div>
         </div>
 

@@ -210,10 +210,10 @@ export function formatPercentage(value: number, decimals: number = 2): string {
 }
 
 /**
- * Format number as currency (SAR)
+ * Format number as currency
  */
-export function formatCurrency(value: number, currency: string = 'SAR'): string {
-  const formatted = new Intl.NumberFormat('en-SA', {
+export function formatCurrency(value: number, currency: string = 'USD'): string {
+  const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(Math.round(value));

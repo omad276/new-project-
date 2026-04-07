@@ -67,7 +67,7 @@ export function ROICalculator({ initialPurchasePrice = 1000000, className = '' }
               className="pl-10"
               placeholder="Original purchase price"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">SAR</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">USD</span>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export function ROICalculator({ initialPurchasePrice = 1000000, className = '' }
               className="pl-10"
               placeholder="Current market value"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">SAR</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">USD</span>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export function ROICalculator({ initialPurchasePrice = 1000000, className = '' }
               className="pl-10"
               placeholder="Yearly rental income"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">SAR</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">USD</span>
           </div>
         </div>
 
@@ -121,7 +121,7 @@ export function ROICalculator({ initialPurchasePrice = 1000000, className = '' }
               className="pl-10"
               placeholder="Maintenance, taxes, insurance"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">SAR</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">USD</span>
           </div>
         </div>
       </div>

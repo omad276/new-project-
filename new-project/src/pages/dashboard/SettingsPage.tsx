@@ -22,10 +22,10 @@ import { cn } from '@/lib/utils';
 
 // Mock user data
 const mockUser = {
-  name: 'Mohammed Ahmed',
-  nameAr: 'محمد أحمد',
-  email: 'mohammed@example.com',
-  phone: '+966 50 123 4567',
+  name: 'John Smith',
+  nameAr: '',
+  email: 'john@example.com',
+  phone: '+1 555 123 4567',
   avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
 };
 

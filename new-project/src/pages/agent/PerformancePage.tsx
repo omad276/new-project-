@@ -80,10 +80,10 @@ function PerformancePage() {
 
   // Property performance
   const propertyPerformance = [
-    { name: isArabic ? 'فيلا الرياض' : 'Riyadh Villa', views: 856, leads: 12, conversion: 14 },
-    { name: isArabic ? 'شقة جدة' : 'Jeddah Apt', views: 642, leads: 8, conversion: 12 },
-    { name: isArabic ? 'مكتب الدمام' : 'Dammam Office', views: 423, leads: 5, conversion: 12 },
-    { name: isArabic ? 'أرض تجارية' : 'Commercial Land', views: 312, leads: 3, conversion: 10 },
+    { name: isArabic ? 'Miami Villa' : 'Miami Villa', views: 856, leads: 12, conversion: 14 },
+    { name: isArabic ? 'London Apt' : 'London Apt', views: 642, leads: 8, conversion: 12 },
+    { name: isArabic ? 'NYC Office' : 'NYC Office', views: 423, leads: 5, conversion: 12 },
+    { name: isArabic ? 'Commercial Land' : 'Commercial Land', views: 312, leads: 3, conversion: 10 },
   ];
 
   // Goals
@@ -437,7 +437,7 @@ function PerformancePage() {
               <div>
                 <p className="text-text-secondary text-sm">{isArabic ? 'إجمالي الإيرادات' : 'Total Revenue'}</p>
                 <p className="text-xl font-bold text-text-primary">
-                  {performanceStats.totalRevenue.toLocaleString()} SAR
+                  {performanceStats.totalRevenue.toLocaleString()} USD
                 </p>
               </div>
             </div>

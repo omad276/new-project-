@@ -37,8 +37,9 @@ export async function register(data: RegisterInput): Promise<AuthResponse> {
     email: data.email,
     password: data.password,
     fullName: data.fullName,
-    phone: data.phone,
-    role: data.role || 'user',
+    phone: data.phone || '',
+    countryCode: data.countryCode || '',
+    role: data.role || 'buyer',
   });
 
   // Generate tokens

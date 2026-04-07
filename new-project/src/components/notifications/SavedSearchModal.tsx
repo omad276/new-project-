@@ -34,7 +34,7 @@ const PROPERTY_TYPES = [
 ];
 
 const LOCATIONS = [
-  { value: 'riyadh', labelEn: 'Riyadh', labelAr: 'الرياض' },
+  { value: 'miami', labelEn: 'Miami', labelAr: 'Miami' },
   { value: 'jeddah', labelEn: 'Jeddah', labelAr: 'جدة' },
   { value: 'dammam', labelEn: 'Dammam', labelAr: 'الدمام' },
   { value: 'makkah', labelEn: 'Makkah', labelAr: 'مكة' },
@@ -108,9 +108,9 @@ export function SavedSearchModal({
   };
 
   const formatMoney = (value: number) => {
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M SAR`;
-    if (value >= 1000) return `${(value / 1000).toFixed(0)}K SAR`;
-    return `${value} SAR`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M USD`;
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}K USD`;
+    return `${value} USD`;
   };
 
   return (
@@ -135,14 +135,14 @@ export function SavedSearchModal({
             label={isArabic ? 'اسم البحث (English)' : 'Search Name (English)'}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isArabic ? 'مثال: فلل الرياض' : 'e.g., Riyadh Villas'}
+            placeholder={isArabic ? 'مثال: Miami Villas' : 'e.g., Miami Villas'}
             leftIcon={<Search className="w-5 h-5" />}
           />
           <Input
             label={isArabic ? 'اسم البحث (عربي)' : 'Search Name (Arabic)'}
             value={nameAr}
             onChange={(e) => setNameAr(e.target.value)}
-            placeholder="مثال: فلل الرياض"
+            placeholder="e.g., Miami Villas"
             leftIcon={<Search className="w-5 h-5" />}
             dir="rtl"
           />

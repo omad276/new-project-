@@ -118,17 +118,17 @@ function Footer() {
               </li>
               <li>
                 <a
-                  href="tel:+966500000000"
+                  href="tel:+1234567890"
                   className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  +966 50 000 0000
+                  +1 (234) 567-890
                 </a>
               </li>
               <li>
                 <div className="flex items-start gap-2 text-sm text-text-secondary">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Riyadh, Saudi Arabia</span>
+                  <span>Global Service</span>
                 </div>
               </li>
             </ul>

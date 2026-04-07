@@ -50,6 +50,7 @@ export interface IUser {
   password: string;
   fullName: string;
   phone?: string;
+  countryCode?: string;
   role: UserRole;
   avatar?: string;
   isActive: boolean;

@@ -120,8 +120,8 @@ function HomePage() {
             </h1>
             <p className="text-xl text-text-secondary mb-10 max-w-2xl mx-auto">
               {isArabic
-                ? 'منصة العقارات الذكية التي تربطك بأفضل العقارات في المملكة العربية السعودية'
-                : 'The smart real estate platform connecting you with the best properties in Saudi Arabia'}
+                ? 'منصة العقارات الذكية التي تربطك بأفضل العقارات حول العالم'
+                : 'The smart real estate platform connecting you with the best properties worldwide'}
             </p>
 
             {/* Search Box */}

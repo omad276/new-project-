@@ -4,8 +4,10 @@ import { config } from './index.js';
 // Connection state tracking
 let isConnected = false;
 
+let mongoServer: { getUri: () => string; stop: () => Promise<void> } | null = null;
+
 /**
- * Connect to MongoDB database
+ * Connect to MongoDB database (with fallback to in-memory)
  */
 export async function connectDatabase(): Promise<void> {
   if (isConnected) {
@@ -13,10 +15,27 @@ export async function connectDatabase(): Promise<void> {
     return;
   }
 
+  // Try Atlas first
   try {
-    const conn = await mongoose.connect(config.mongodb.uri, config.mongodb.options);
+    const conn = await mongoose.connect(config.mongodb.uri, {
+      ...config.mongodb.options,
+      serverSelectionTimeoutMS: 5000,
+    });
     isConnected = true;
-    console.log(`📦 MongoDB connected: ${conn.connection.host}`);
+    console.log(`📦 MongoDB Atlas connected: ${conn.connection.host}`);
+    return;
+  } catch {
+    console.log('⚠️  Atlas connection failed, starting in-memory MongoDB...');
+  }
+
+  // Fallback to in-memory MongoDB
+  try {
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    const conn = await mongoose.connect(uri);
+    isConnected = true;
+    console.log(`📦 MongoDB In-Memory connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
     throw error;
@@ -33,6 +52,10 @@ export async function disconnectDatabase(): Promise<void> {
 
   try {
     await mongoose.disconnect();
+    if (mongoServer) {
+      await mongoServer.stop();
+      mongoServer = null;
+    }
     isConnected = false;
     console.log('📦 MongoDB disconnected');
   } catch (error) {

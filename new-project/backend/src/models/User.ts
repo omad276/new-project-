@@ -34,6 +34,11 @@ const userSchema = new Schema<IUserDocument>(
       type: String,
       trim: true,
     },
+    countryCode: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     role: {
       type: String,
       enum: ['buyer', 'owner', 'agent', 'admin'] as UserRole[],
@@ -122,6 +127,7 @@ userSchema.methods.toPublicJSON = function (): PublicUser {
     email: this.email,
     fullName: this.fullName,
     phone: this.phone,
+    countryCode: this.countryCode,
     role: this.role,
     avatar: this.avatar,
     isActive: this.isActive,

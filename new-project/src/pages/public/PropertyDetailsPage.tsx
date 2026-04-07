@@ -67,10 +67,10 @@ interface PropertyData {
 
 const mockAgent = {
   id: '1',
-  name: 'Mohammed Al-Rashid',
-  nameAr: 'محمد الراشد',
-  email: 'mohammed@upgreat.com',
-  phone: '+966 50 123 4567',
+  name: 'John Smith',
+  nameAr: '',
+  email: 'john@upgreat.com',
+  phone: '+1 555 123 4567',
   avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
   listings: 45,
   rating: 4.8,
@@ -446,7 +446,7 @@ function PropertyDetailsPage() {
           bathrooms: property.bathrooms,
           address: property.location.address || '',
           city: property.location.city || '',
-          country: property.location.country || 'Saudi Arabia',
+          country: property.location.country || '',
           description: description,
           features: features,
           images: images,

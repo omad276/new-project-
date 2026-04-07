@@ -28,7 +28,8 @@ const passwordSchema = z
 // Phone validation (optional, international format)
 const phoneSchema = z
   .string()
-  .regex(/^\+?[1-9]\d{7,14}$/, 'Invalid phone number format')
+  .transform((v) => v?.trim() || '')
+  .refine((v) => v === '' || /^\+?[1-9]\d{7,14}$/.test(v), 'Invalid phone number format')
   .optional();
 
 // Full name validation
@@ -42,11 +43,19 @@ const fullNameSchema = z
 // Request Validation Schemas
 // ============================================
 
+// Country code validation (optional, e.g., +1, +44, +971)
+const countryCodeSchema = z
+  .string()
+  .transform((v) => v?.trim() || '')
+  .refine((v) => v === '' || /^\+?[1-9]\d{0,3}$/.test(v), 'Invalid country code')
+  .optional();
+
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   fullName: fullNameSchema,
   phone: phoneSchema,
+  countryCode: countryCodeSchema,
   role: userRoleSchema.default('buyer'),
 });
 
@@ -203,11 +212,11 @@ export const propertyStatusSchema = z.enum([
 
 const locationSchema = z.object({
   address: z.string().min(1, 'Address is required'),
-  addressAr: z.string().min(1, 'Arabic address is required'),
+  addressAr: z.string().optional().default(''),
   city: z.string().min(1, 'City is required'),
-  cityAr: z.string().min(1, 'Arabic city is required'),
-  country: z.string().default('Saudi Arabia'),
-  countryAr: z.string().default('السعودية'),
+  cityAr: z.string().optional().default(''),
+  country: z.string().min(1, 'Country is required'),
+  countryAr: z.string().optional().default(''),
   coordinates: z
     .object({
       type: z.string().default('Point'),
@@ -225,7 +234,7 @@ export const createPropertySchema = z.object({
   category: propertyCategorySchema,
   status: propertyStatusSchema.default('for_sale'),
   price: z.number().positive('Price must be positive'),
-  currency: z.string().default('SAR'),
+  currency: z.string().default('USD'),
   area: z.number().positive('Area must be positive'),
   bedrooms: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(0).optional(),
@@ -533,7 +542,7 @@ export const createCostEstimateSchema = z.object({
   measurementIds: z.array(z.string()).optional(),
   items: z.array(costItemSchema).min(1, 'At least one item required'),
   taxRate: z.number().min(0).max(100).default(0),
-  currency: z.string().length(3).default('SAR'),
+  currency: z.string().length(3).default('USD'),
   notes: z.string().max(2000).optional(),
 });
 

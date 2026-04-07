@@ -48,7 +48,7 @@ const propertySchema = new mongoose.Schema(
     },
     currency: {
       type: String,
-      default: 'SAR',
+      default: 'USD',
     },
     area: {
       type: Number,
@@ -61,8 +61,8 @@ const propertySchema = new mongoose.Schema(
       addressAr: { type: String, required: true },
       city: { type: String, required: true },
       cityAr: { type: String, required: true },
-      country: { type: String, default: 'Saudi Arabia' },
-      countryAr: { type: String, default: 'السعودية' },
+      country: { type: String, default: '' },
+      countryAr: { type: String, default: '' },
       coordinates: {
         type: { type: String, default: 'Point' },
         coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]

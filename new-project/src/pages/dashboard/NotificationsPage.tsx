@@ -49,7 +49,7 @@ const mockNotifications: Notification[] = [
     type: 'price_drop',
     title: 'Price Drop Alert',
     titleAr: 'تنبيه انخفاض السعر',
-    message: 'Luxury Villa in Riyadh dropped from 2,800,000 to 2,500,000 SAR (10% off)',
+    message: 'Luxury Villa in Miami dropped from 2,800,000 to 2,500,000 USD (10% off)',
     messageAr: 'فيلا فاخرة في الرياض انخفض سعرها من 2,800,000 إلى 2,500,000 ريال (خصم 10%)',
     time: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
     read: false,
@@ -65,7 +65,7 @@ const mockNotifications: Notification[] = [
     type: 'new_listing',
     title: 'New Listing Match',
     titleAr: 'عقار جديد مطابق',
-    message: 'A new property matches your "Riyadh Villas" search: Modern Villa in Al Nakheel',
+    message: 'A new property matches your "Miami Villas" search: Modern Villa in Al Nakheel',
     messageAr: 'عقار جديد يطابق بحثك "فلل الرياض": فيلا حديثة في النخيل',
     time: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     read: false,
@@ -79,7 +79,7 @@ const mockNotifications: Notification[] = [
     type: 'inquiry',
     title: 'New Inquiry',
     titleAr: 'استفسار جديد',
-    message: 'Ahmed Ali is interested in your Luxury Villa in Riyadh',
+    message: 'Ahmed Ali is interested in your Luxury Villa in Miami',
     messageAr: 'أحمد علي مهتم بفيلتك الفاخرة في الرياض',
     time: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
     read: false,
@@ -90,7 +90,7 @@ const mockNotifications: Notification[] = [
     type: 'price_drop',
     title: 'Price Drop Alert',
     titleAr: 'تنبيه انخفاض السعر',
-    message: 'Modern Apartment in Jeddah dropped from 1,200,000 to 1,050,000 SAR (12.5% off)',
+    message: 'Modern Apartment in Jeddah dropped from 1,200,000 to 1,050,000 USD (12.5% off)',
     messageAr: 'شقة حديثة في جدة انخفض سعرها من 1,200,000 إلى 1,050,000 ريال (خصم 12.5%)',
     time: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     read: false,
@@ -164,10 +164,10 @@ const mockNotifications: Notification[] = [
 const mockSavedSearches: SavedSearch[] = [
   {
     id: '1',
-    name: 'Riyadh Villas',
+    name: 'Miami Villas',
     nameAr: 'فلل الرياض',
     criteria: {
-      location: 'Riyadh',
+      location: 'Miami',
       locationAr: 'الرياض',
       propertyType: 'villa',
       minPrice: 1500000,

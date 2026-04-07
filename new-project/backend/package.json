@@ -36,6 +36,7 @@
     "@types/morgan": "^1.9.9",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.0.0",
+    "mongodb-memory-server": "^11.0.1",
     "tsx": "^4.19.0"
   },
   "engines": {

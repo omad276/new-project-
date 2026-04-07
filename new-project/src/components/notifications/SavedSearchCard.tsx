@@ -76,11 +76,11 @@ export function SavedSearchCard({
     }
     if (c.minPrice || c.maxPrice) {
       if (c.minPrice && c.maxPrice) {
-        parts.push(`${formatPrice(c.minPrice, 'SAR', isArabic ? 'ar-SA' : 'en-US')} - ${formatPrice(c.maxPrice, 'SAR', isArabic ? 'ar-SA' : 'en-US')}`);
+        parts.push(`${formatPrice(c.minPrice, 'USD', isArabic ? 'ar-SA' : 'en-US')} - ${formatPrice(c.maxPrice, 'USD', isArabic ? 'ar-SA' : 'en-US')}`);
       } else if (c.minPrice) {
-        parts.push(`${isArabic ? 'من' : 'From'} ${formatPrice(c.minPrice, 'SAR', isArabic ? 'ar-SA' : 'en-US')}`);
+        parts.push(`${isArabic ? 'من' : 'From'} ${formatPrice(c.minPrice, 'USD', isArabic ? 'ar-SA' : 'en-US')}`);
       } else if (c.maxPrice) {
-        parts.push(`${isArabic ? 'حتى' : 'Up to'} ${formatPrice(c.maxPrice, 'SAR', isArabic ? 'ar-SA' : 'en-US')}`);
+        parts.push(`${isArabic ? 'حتى' : 'Up to'} ${formatPrice(c.maxPrice, 'USD', isArabic ? 'ar-SA' : 'en-US')}`);
       }
     }
     if (c.bedrooms) {

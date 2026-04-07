@@ -20,11 +20,11 @@ async function initializeDb() {
   const adminPassword = await bcrypt.hash('admin123', 10);
   const adminUser: User = {
     id: uuidv4(),
-    email: 'admin@upgreat.sa',
+    email: 'admin@upgreat.com',
     password: adminPassword,
     fullName: 'System Admin',
-    fullNameAr: 'مدير النظام',
-    phone: '+966500000000',
+    fullNameAr: '',
+    phone: '+1234567890',
     role: 'admin',
     isActive: true,
     isVerified: true,

@@ -63,7 +63,7 @@ export function CostEstimatorModal({
 
   // Tax and settings
   const [taxRate, setTaxRate] = useState(15);
-  const [currency, setCurrency] = useState('SAR');
+  const [currency, setCurrency] = useState('USD');
   const [estimateName, setEstimateName] = useState('');
 
   // State

@@ -289,7 +289,7 @@ function RegisterPage() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   error={errors.phone}
                   leftIcon={<Phone className="w-5 h-5" />}
-                  placeholder="+966 5X XXX XXXX"
+                  placeholder="+1 234 567 8900"
                 />
 
                 <div>

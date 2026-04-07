@@ -174,9 +174,9 @@ function PropertiesPage() {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat(isArabic ? 'ar-SA' : 'en-SA', {
+    return new Intl.NumberFormat(isArabic ? 'ar-SA' : 'en-US', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(price);
   };
