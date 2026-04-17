@@ -1,7 +1,7 @@
 {
-  "name": "Upgreat Real Estate",
-  "short_name": "Upgreat",
-  "description": "Global Real Estate Platform - Buy, Sell & Rent Properties Worldwide",
+  "name": "Space - Global Space Platform",
+  "short_name": "Space",
+  "description": "Global Space Platform - Rent & Sell Any Space Worldwide (Land, Warehouse, Storage, Containers, Aviation, Train)",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -57,7 +57,7 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["business", "lifestyle", "finance"],
+  "categories": ["business", "logistics", "storage", "real estate"],
   "screenshots": [
     {
       "src": "/screenshots/home.png",

@@ -33,17 +33,17 @@ function RegisterPage() {
     {
       value: 'buyer',
       label: isArabic ? 'مشتري / مستأجر' : 'Buyer / Renter',
-      description: isArabic ? 'أبحث عن عقار' : 'Looking for a property',
+      description: isArabic ? 'أبحث عن مساحة' : 'Looking for a space',
     },
     {
       value: 'owner',
-      label: isArabic ? 'مالك عقار' : 'Property Owner',
-      description: isArabic ? 'لدي عقار للبيع أو الإيجار' : 'I have a property to sell or rent',
+      label: isArabic ? 'مالك مساحة' : 'Space Owner',
+      description: isArabic ? 'لدي مساحة للبيع أو الإيجار' : 'I have a space to sell or rent',
     },
     {
       value: 'agent',
-      label: isArabic ? 'وكيل عقاري' : 'Real Estate Agent',
-      description: isArabic ? 'أمثل عملاء ومالكي عقارات' : 'I represent clients and property owners',
+      label: isArabic ? 'وكيل' : 'Agent',
+      description: isArabic ? 'أمثل عملاء ومالكي مساحات' : 'I represent clients and space owners',
     },
   ];
 
@@ -168,8 +168,8 @@ function RegisterPage() {
           <h1 className="text-2xl font-bold">{t('auth.registerTitle')}</h1>
           <p className="text-text-secondary mt-2">
             {isArabic
-              ? 'أنشئ حسابك وابدأ رحلتك العقارية'
-              : 'Create your account and start your property journey'}
+              ? 'أنشئ حسابك وابدأ رحلتك'
+              : 'Create your account and start your journey'}
           </p>
         </div>
 
@@ -214,7 +214,7 @@ function RegisterPage() {
               /* Step 1: Choose Role */
               <div className="space-y-4">
                 <p className="text-center text-text-secondary mb-6">
-                  {isArabic ? 'كيف تريد استخدام أبجريت؟' : 'How would you like to use Upgreat?'}
+                  {isArabic ? 'كيف تريد استخدام سبيس؟' : 'How would you like to use Space?'}
                 </p>
 
                 <div className="space-y-3">

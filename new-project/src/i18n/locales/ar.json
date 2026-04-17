@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "أبجريت",
-    "tagline": "منصة العقارات الذكية",
+    "appName": "سبيس",
+    "tagline": "منصة المساحات العالمية",
     "search": "بحث",
     "filter": "تصفية",
     "sort": "ترتيب",
@@ -28,8 +28,8 @@
   },
   "nav": {
     "home": "الرئيسية",
-    "properties": "العقارات",
-    "about": "عن أبجريت",
+    "properties": "المساحات",
+    "about": "عن سبيس",
     "contact": "اتصل بنا",
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
@@ -52,13 +52,18 @@
     "building": "مبنى",
     "sqm": "م²",
     "factory": "مصنع",
-    "industrialLand": "أرض صناعية",
-    "offPlan": "على الخارطة",
-    "investment": "استثمار",
     "warehouse": "مستودع",
+    "storage": "تخزين",
+    "shipping_container": "حاوية شحن",
+    "aviation_hangar": "حظيرة طيران",
+    "train_cargo": "شحن قطار",
+    "retail": "محل تجاري",
+    "parking": "موقف سيارات",
+    "cold_storage": "تخزين بارد",
     "commercial": "تجاري",
     "residential": "سكني",
     "industrial": "صناعي",
+    "logistics": "لوجستي",
     "features": "المميزات",
     "description": "الوصف",
     "contactOwner": "تواصل مع المالك",
@@ -83,8 +88,8 @@
     "collections": "المجموعات",
     "createCollection": "إنشاء مجموعة",
     "addToCollection": "أضف للمجموعة",
-    "noFavorites": "لا توجد عقارات مفضلة",
-    "savedProperties": "العقارات المحفوظة"
+    "noFavorites": "لا توجد مساحات مفضلة",
+    "savedProperties": "المساحات المحفوظة"
   },
   "auth": {
     "email": "البريد الإلكتروني",
@@ -102,22 +107,31 @@
   },
   "dashboard": {
     "overview": "نظرة عامة",
-    "myProperties": "عقاراتي",
+    "myProperties": "مساحاتي",
     "favorites": "المفضلة",
-    "compare": "مقارنة العقارات",
+    "compare": "مقارنة المساحات",
     "notifications": "الإشعارات",
     "settings": "الإعدادات",
     "profile": "الملف الشخصي"
   },
   "admin": {
     "dashboard": "لوحة الإدارة",
-    "properties": "إدارة العقارات",
+    "properties": "إدارة المساحات",
     "users": "إدارة المستخدمين",
-    "analytics": "التحليلات والتقارير"
+    "analytics": "التحليلات والتقارير",
+    "pending": "قيد المراجعة",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "feature": "تمييز",
+    "unfeature": "إلغاء التمييز"
   },
   "footer": {
     "rights": "جميع الحقوق محفوظة",
     "privacy": "سياسة الخصوصية",
     "terms": "الشروط والأحكام"
+  },
+  "contact": {
+    "whatsapp": "واتساب",
+    "email": "البريد الإلكتروني"
   }
 }

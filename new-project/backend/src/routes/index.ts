@@ -8,6 +8,7 @@ import mapRoutes from './mapRoutes.js';
 import measurementRoutes from './measurementRoutes.js';
 import industrialRoutes from './industrialRoutes.js';
 import messageRoutes from './messageRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ const router = Router();
 router.get('/health', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    message: 'Upgreat API is running',
+    message: 'Space Platform API is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
   });
@@ -34,6 +35,7 @@ router.use('/properties', propertyRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/users', userRoutes);
 router.use('/messages', messageRoutes); // Messaging routes
+router.use('/admin', adminRoutes); // Admin routes
 router.use(mapRoutes); // Map routes (handles /projects/:id/maps and /maps/:id)
 router.use(measurementRoutes); // Measurement & cost routes
 router.use(industrialRoutes); // Industrial property routes

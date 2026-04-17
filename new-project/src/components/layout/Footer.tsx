@@ -14,10 +14,12 @@ function Footer() {
   ];
 
   const propertyTypes = [
-    { href: '/properties?type=apartment', label: t('property.apartment') },
-    { href: '/properties?type=villa', label: t('property.villa') },
-    { href: '/properties?type=office', label: t('property.office') },
     { href: '/properties?type=land', label: t('property.land') },
+    { href: '/properties?type=warehouse', label: t('property.warehouse') },
+    { href: '/properties?type=storage', label: t('property.storage') },
+    { href: '/properties?type=shipping_container', label: t('property.shipping_container') },
+    { href: '/properties?type=aviation_hangar', label: t('property.aviation_hangar') },
+    { href: '/properties?type=office', label: t('property.office') },
   ];
 
   const legalLinks = [
@@ -109,26 +111,28 @@ function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="mailto:info@upgreat.com"
+                  href="mailto:esmailabdelrazig@gmail.com"
                   className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  info@upgreat.com
+                  esmailabdelrazig@gmail.com
                 </a>
               </li>
               <li>
                 <a
-                  href="tel:+1234567890"
+                  href="https://wa.me/249911716850"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  +1 (234) 567-890
+                  WhatsApp: +249911716850
                 </a>
               </li>
               <li>
                 <div className="flex items-start gap-2 text-sm text-text-secondary">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Global Service</span>
+                  <span>Global Service - Worldwide</span>
                 </div>
               </li>
             </ul>

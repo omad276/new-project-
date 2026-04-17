@@ -1,7 +1,7 @@
 {
-  "name": "upgreat-api",
+  "name": "space-api",
   "version": "1.0.0",
-  "description": "Upgreat Real Estate Platform API",
+  "description": "Space Platform API - Global Space Rental & Sales",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

@@ -77,10 +77,14 @@ function HomePage() {
   ];
 
   const propertyTypes = [
-    { type: 'apartment', icon: Building2, label: t('property.apartment') },
-    { type: 'villa', icon: Home, label: t('property.villa') },
-    { type: 'office', icon: Building2, label: t('property.office') },
     { type: 'land', icon: MapPin, label: t('property.land') },
+    { type: 'warehouse', icon: Building2, label: t('property.warehouse') },
+    { type: 'storage', icon: Building2, label: t('property.storage') },
+    { type: 'shipping_container', icon: Building2, label: t('property.shipping_container') },
+    { type: 'aviation_hangar', icon: Building2, label: t('property.aviation_hangar') },
+    { type: 'train_cargo', icon: Building2, label: t('property.train_cargo') },
+    { type: 'office', icon: Building2, label: t('property.office') },
+    { type: 'retail', icon: Building2, label: t('property.retail') },
   ];
 
   const handlePropertyClick = (id: string) => {
@@ -108,20 +112,20 @@ function HomePage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6">
               {isArabic ? (
                 <>
-                  اكتشف منزل أحلامك مع{' '}
+                  اكتشف المساحة المثالية مع{' '}
                   <span className="text-primary">{t('common.appName')}</span>
                 </>
               ) : (
                 <>
-                  Discover Your Dream Home with{' '}
+                  Find Your Perfect Space with{' '}
                   <span className="text-primary">{t('common.appName')}</span>
                 </>
               )}
             </h1>
             <p className="text-xl text-text-secondary mb-10 max-w-2xl mx-auto">
               {isArabic
-                ? 'منصة العقارات الذكية التي تربطك بأفضل العقارات حول العالم'
-                : 'The smart real estate platform connecting you with the best properties worldwide'}
+                ? 'المنصة العالمية للمساحات - أرض، مستودعات، تخزين، حاويات شحن، طيران، قطارات والمزيد'
+                : 'Global Space Platform - Land, Warehouses, Storage, Shipping Containers, Aviation, Train Cargo & More'}
             </p>
 
             {/* Search Box */}
@@ -194,12 +198,12 @@ function HomePage() {
           <div className="flex items-center justify-between mb-10">
             <div>
               <h2 className="text-3xl font-bold mb-2">
-                {isArabic ? 'عقارات مميزة' : 'Featured Properties'}
+                {isArabic ? 'مساحات مميزة' : 'Featured Spaces'}
               </h2>
               <p className="text-text-secondary">
                 {isArabic
-                  ? 'اكتشف أفضل العقارات المختارة لك'
-                  : 'Discover the best properties selected for you'}
+                  ? 'اكتشف أفضل المساحات المختارة لك'
+                  : 'Discover the best spaces selected for you'}
               </p>
             </div>
             <Link to="/properties">
@@ -227,7 +231,7 @@ function HomePage() {
             </div>
           ) : (
             <div className="text-center py-20 text-text-secondary">
-              {isArabic ? 'لا توجد عقارات مميزة حالياً' : 'No featured properties available'}
+              {isArabic ? 'لا توجد مساحات مميزة حالياً' : 'No featured spaces available'}
             </div>
           )}
         </div>
@@ -242,8 +246,8 @@ function HomePage() {
             </h2>
             <p className="text-text-secondary">
               {isArabic
-                ? 'اختر نوع العقار الذي تبحث عنه'
-                : 'Choose the type of property you are looking for'}
+                ? 'اختر نوع المساحة التي تبحث عنها'
+                : 'Choose the type of space you are looking for'}
             </p>
           </div>
 
@@ -271,12 +275,12 @@ function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-2">
-              {isArabic ? 'لماذا تختار أبجريت؟' : 'Why Choose Upgreat?'}
+              {isArabic ? 'لماذا تختار سبيس؟' : 'Why Choose Space?'}
             </h2>
             <p className="text-text-secondary">
               {isArabic
-                ? 'نقدم لك أفضل تجربة في البحث عن العقارات'
-                : 'We offer you the best property search experience'}
+                ? 'نقدم لك أفضل تجربة في البحث عن المساحات'
+                : 'We offer you the best space search experience'}
             </p>
           </div>
 
@@ -301,12 +305,12 @@ function HomePage() {
       <section className="py-20 bg-primary">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-background mb-4">
-            {isArabic ? 'هل لديك عقار للبيع أو الإيجار؟' : 'Have a property to sell or rent?'}
+            {isArabic ? 'هل لديك مساحة للبيع أو الإيجار؟' : 'Have a space to sell or rent?'}
           </h2>
           <p className="text-background/80 mb-8 max-w-2xl mx-auto">
             {isArabic
-              ? 'انضم إلى منصة أبجريت واعرض عقارك لآلاف المشترين والمستأجرين المحتملين'
-              : 'Join Upgreat platform and showcase your property to thousands of potential buyers and renters'}
+              ? 'انضم إلى منصة سبيس واعرض مساحتك لآلاف المشترين والمستأجرين حول العالم'
+              : 'Join Space platform and showcase your space to thousands of potential buyers and renters worldwide'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">

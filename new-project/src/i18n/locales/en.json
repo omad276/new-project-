@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "Upgreat",
-    "tagline": "Smart Real Estate Platform",
+    "appName": "Space",
+    "tagline": "Global Space Platform",
     "search": "Search",
     "filter": "Filter",
     "sort": "Sort",
@@ -28,7 +28,7 @@
   },
   "nav": {
     "home": "Home",
-    "properties": "Properties",
+    "properties": "Spaces",
     "about": "About",
     "contact": "Contact",
     "login": "Login",
@@ -53,9 +53,17 @@
     "sqm": "sqm",
     "factory": "Factory",
     "warehouse": "Warehouse",
+    "storage": "Storage",
+    "shipping_container": "Shipping Container",
+    "aviation_hangar": "Aviation Hangar",
+    "train_cargo": "Train Cargo",
+    "retail": "Retail",
+    "parking": "Parking",
+    "cold_storage": "Cold Storage",
     "commercial": "Commercial",
     "residential": "Residential",
     "industrial": "Industrial",
+    "logistics": "Logistics",
     "features": "Features",
     "description": "Description",
     "contactOwner": "Contact Owner",
@@ -108,9 +116,14 @@
   },
   "admin": {
     "dashboard": "Admin Dashboard",
-    "properties": "Manage Properties",
+    "properties": "Manage Spaces",
     "users": "Manage Users",
-    "analytics": "Analytics & Reports"
+    "analytics": "Analytics & Reports",
+    "pending": "Pending Approval",
+    "approve": "Approve",
+    "reject": "Reject",
+    "feature": "Feature",
+    "unfeature": "Unfeature"
   },
   "footer": {
     "rights": "All rights reserved",

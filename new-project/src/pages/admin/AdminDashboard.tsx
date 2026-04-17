@@ -74,7 +74,7 @@ function AdminDashboard() {
       link: '/admin/users',
     },
     {
-      title: isArabic ? 'إجمالي العقارات' : 'Total Properties',
+      title: isArabic ? 'إجمالي المساحات' : 'Total Spaces',
       value: propertyStats?.totalProperties || 0,
       icon: Building2,
       color: 'text-green-500',
@@ -107,8 +107,8 @@ function AdminDashboard() {
       link: '/admin/users',
     },
     {
-      title: isArabic ? 'إدارة العقارات' : 'Manage Properties',
-      description: isArabic ? 'مراجعة وإدارة قوائم العقارات' : 'Review and manage property listings',
+      title: isArabic ? 'إدارة المساحات' : 'Manage Spaces',
+      description: isArabic ? 'مراجعة وإدارة قوائم المساحات' : 'Review and manage space listings',
       icon: Building2,
       link: '/admin/properties',
     },
@@ -197,7 +197,7 @@ function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Home className="w-5 h-5 text-primary" />
-              {isArabic ? 'العقارات حسب النوع' : 'Properties by Type'}
+              {isArabic ? 'المساحات حسب النوع' : 'Spaces by Type'}
             </CardTitle>
           </CardHeader>
           <CardContent>

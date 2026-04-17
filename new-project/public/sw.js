@@ -1,4 +1,4 @@
-const CACHE_NAME = 'upgreat-v1';
+const CACHE_NAME = 'space-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -65,7 +65,7 @@ self.addEventListener('fetch', (event) => {
 // Handle push notifications
 self.addEventListener('push', (event) => {
   const options = {
-    body: event.data ? event.data.text() : 'New notification from Upgreat',
+    body: event.data ? event.data.text() : 'New notification from Space',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-72x72.png',
     vibrate: [100, 50, 100],
@@ -76,7 +76,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('Upgreat Real Estate', options)
+    self.registration.showNotification('Space Platform', options)
   );
 });
 
