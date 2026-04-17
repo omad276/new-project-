@@ -9,6 +9,7 @@ import measurementRoutes from './measurementRoutes.js';
 import industrialRoutes from './industrialRoutes.js';
 import messageRoutes from './messageRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import setupRoutes from './setupRoutes.js';
 
 const router = Router();
 
@@ -39,5 +40,6 @@ router.use('/admin', adminRoutes); // Admin routes
 router.use(mapRoutes); // Map routes (handles /projects/:id/maps and /maps/:id)
 router.use(measurementRoutes); // Measurement & cost routes
 router.use(industrialRoutes); // Industrial property routes
+router.use('/setup', setupRoutes); // One-time setup routes (DELETE AFTER USE)
 
 export default router;
