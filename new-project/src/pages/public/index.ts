@@ -6,3 +6,6 @@ export { RegisterPage } from './RegisterPage';
 export { BlueprintDemoPage } from './BlueprintDemoPage';
 export { AboutPage } from './AboutPage';
 export { ContactPage } from './ContactPage';
+export { VerifyEmailPage } from './VerifyEmailPage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
+export { ResetPasswordPage } from './ResetPasswordPage';

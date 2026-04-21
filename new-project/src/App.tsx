@@ -14,6 +14,9 @@ import {
   BlueprintDemoPage,
   AboutPage,
   ContactPage,
+  VerifyEmailPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
 } from '@/pages/public';
 import {
   DashboardOverview,
@@ -81,6 +84,30 @@ function App() {
           element={
             <AuthLayout>
               <RegisterPage />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <AuthLayout>
+              <VerifyEmailPage />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <AuthLayout>
+              <ForgotPasswordPage />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <AuthLayout>
+              <ResetPasswordPage />
             </AuthLayout>
           }
         />
