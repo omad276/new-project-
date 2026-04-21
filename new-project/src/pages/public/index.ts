@@ -4,3 +4,5 @@ export { PropertyDetailsPage } from './PropertyDetailsPage';
 export { LoginPage } from './LoginPage';
 export { RegisterPage } from './RegisterPage';
 export { BlueprintDemoPage } from './BlueprintDemoPage';
+export { AboutPage } from './AboutPage';
+export { ContactPage } from './ContactPage';

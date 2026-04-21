@@ -12,6 +12,8 @@ import {
   LoginPage,
   RegisterPage,
   BlueprintDemoPage,
+  AboutPage,
+  ContactPage,
 } from '@/pages/public';
 import {
   DashboardOverview,
@@ -113,6 +115,22 @@ function App() {
           element={
             <MainLayout>
               <BlueprintDemoPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <MainLayout>
+              <AboutPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <MainLayout>
+              <ContactPage />
             </MainLayout>
           }
         />
