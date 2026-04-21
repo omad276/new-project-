@@ -73,6 +73,10 @@ function RegisterPage() {
 
     if (!formData.phone) {
       newErrors.phone = isArabic ? 'رقم الهاتف مطلوب' : 'Phone number is required';
+    } else if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.trim())) {
+      newErrors.phone = isArabic
+        ? 'رقم الهاتف غير صالح (مثال: +1234567890)'
+        : 'Invalid phone format (e.g., +1234567890)';
     }
 
     if (!formData.password) {
@@ -81,6 +85,18 @@ function RegisterPage() {
       newErrors.password = isArabic
         ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'
         : 'Password must be at least 8 characters';
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = isArabic
+        ? 'كلمة المرور يجب أن تحتوي على حرف صغير'
+        : 'Password must contain a lowercase letter';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = isArabic
+        ? 'كلمة المرور يجب أن تحتوي على حرف كبير'
+        : 'Password must contain an uppercase letter';
+    } else if (!/\d/.test(formData.password)) {
+      newErrors.password = isArabic
+        ? 'كلمة المرور يجب أن تحتوي على رقم'
+        : 'Password must contain a number';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -289,7 +305,7 @@ function RegisterPage() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   error={errors.phone}
                   leftIcon={<Phone className="w-5 h-5" />}
-                  placeholder="+1 234 567 8900"
+                  placeholder="+12345678900"
                 />
 
                 <div>
