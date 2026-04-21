@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Mail, Phone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 
 function ContactPage() {
@@ -43,29 +43,6 @@ function ContactPage() {
             </CardContent>
           </Card>
 
-          {/* WhatsApp Card */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Phone className="w-6 h-6 text-green-500" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-text-primary mb-1">
-                    {isArabic ? 'واتساب' : 'WhatsApp'}
-                  </h2>
-                  <a
-                    href="https://wa.me/249911716850"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-500 hover:underline text-lg"
-                  >
-                    +249 911 716 850
-                  </a>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Note */}

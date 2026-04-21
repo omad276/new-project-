@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Building2, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 function Footer() {
   const { t } = useTranslation();
@@ -116,17 +116,6 @@ function Footer() {
                 >
                   <Mail className="w-4 h-4" />
                   esmailabdelrazig@gmail.com
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/249911716850"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  WhatsApp: +249911716850
                 </a>
               </li>
               <li>
