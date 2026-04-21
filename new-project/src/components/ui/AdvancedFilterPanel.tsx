@@ -41,12 +41,17 @@ function AdvancedFilterPanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const propertyTypes: SelectOption[] = [
+    { value: 'land', label: t('property.land', 'Land') },
+    { value: 'warehouse', label: t('property.warehouse', 'Warehouse') },
+    { value: 'storage', label: t('property.storage', 'Storage') },
+    { value: 'shipping_container', label: t('property.shippingContainer', 'Shipping Container') },
+    { value: 'aviation_hangar', label: t('property.aviationHangar', 'Aviation Hangar') },
+    { value: 'train_cargo', label: t('property.trainCargo', 'Train Cargo') },
+    { value: 'office', label: t('property.office', 'Office') },
+    { value: 'retail', label: t('property.retail', 'Retail Store') },
     { value: 'apartment', label: t('property.apartment', 'Apartment') },
     { value: 'villa', label: t('property.villa', 'Villa') },
-    { value: 'office', label: t('property.office', 'Office') },
-    { value: 'land', label: t('property.land', 'Land') },
     { value: 'building', label: t('property.building', 'Building') },
-    { value: 'warehouse', label: t('property.warehouse', 'Warehouse') },
     { value: 'factory', label: t('property.factory', 'Factory') },
     { value: 'industrial_land', label: t('property.industrialLand', 'Industrial Land') },
   ];

@@ -14,12 +14,12 @@ function Footer() {
   ];
 
   const propertyTypes = [
-    { href: '/properties?type=land', label: t('property.land') },
-    { href: '/properties?type=warehouse', label: t('property.warehouse') },
-    { href: '/properties?type=storage', label: t('property.storage') },
-    { href: '/properties?type=shipping_container', label: t('property.shipping_container') },
-    { href: '/properties?type=aviation_hangar', label: t('property.aviation_hangar') },
-    { href: '/properties?type=office', label: t('property.office') },
+    { href: '/properties?type=land', label: t('property.land', 'Land') },
+    { href: '/properties?type=warehouse', label: t('property.warehouse', 'Warehouse') },
+    { href: '/properties?type=storage', label: t('property.storage', 'Storage') },
+    { href: '/properties?type=shipping_container', label: t('property.shippingContainer', 'Container') },
+    { href: '/properties?type=aviation_hangar', label: t('property.aviationHangar', 'Aviation') },
+    { href: '/properties?type=train_cargo', label: t('property.trainCargo', 'Train Cargo') },
   ];
 
   const legalLinks = [

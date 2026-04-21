@@ -25,20 +25,26 @@ interface SavedSearchModalProps {
 }
 
 const PROPERTY_TYPES = [
-  { value: 'villa', labelEn: 'Villa', labelAr: 'فيلا' },
-  { value: 'apartment', labelEn: 'Apartment', labelAr: 'شقة' },
-  { value: 'office', labelEn: 'Office', labelAr: 'مكتب' },
   { value: 'land', labelEn: 'Land', labelAr: 'أرض' },
   { value: 'warehouse', labelEn: 'Warehouse', labelAr: 'مستودع' },
-  { value: 'industrial', labelEn: 'Industrial', labelAr: 'صناعي' },
+  { value: 'storage', labelEn: 'Storage', labelAr: 'تخزين' },
+  { value: 'shipping_container', labelEn: 'Shipping Container', labelAr: 'حاوية شحن' },
+  { value: 'aviation_hangar', labelEn: 'Aviation Hangar', labelAr: 'حظيرة طيران' },
+  { value: 'train_cargo', labelEn: 'Train Cargo', labelAr: 'شحن قطار' },
+  { value: 'office', labelEn: 'Office', labelAr: 'مكتب' },
+  { value: 'retail', labelEn: 'Retail Store', labelAr: 'متجر' },
+  { value: 'villa', labelEn: 'Villa', labelAr: 'فيلا' },
+  { value: 'apartment', labelEn: 'Apartment', labelAr: 'شقة' },
+  { value: 'factory', labelEn: 'Factory', labelAr: 'مصنع' },
 ];
 
 const LOCATIONS = [
-  { value: 'miami', labelEn: 'Miami', labelAr: 'Miami' },
-  { value: 'jeddah', labelEn: 'Jeddah', labelAr: 'جدة' },
-  { value: 'dammam', labelEn: 'Dammam', labelAr: 'الدمام' },
-  { value: 'makkah', labelEn: 'Makkah', labelAr: 'مكة' },
-  { value: 'madinah', labelEn: 'Madinah', labelAr: 'المدينة' },
+  { value: 'worldwide', labelEn: 'Worldwide', labelAr: 'عالمي' },
+  { value: 'north_america', labelEn: 'North America', labelAr: 'أمريكا الشمالية' },
+  { value: 'europe', labelEn: 'Europe', labelAr: 'أوروبا' },
+  { value: 'middle_east', labelEn: 'Middle East', labelAr: 'الشرق الأوسط' },
+  { value: 'asia', labelEn: 'Asia', labelAr: 'آسيا' },
+  { value: 'africa', labelEn: 'Africa', labelAr: 'أفريقيا' },
 ];
 
 export function SavedSearchModal({

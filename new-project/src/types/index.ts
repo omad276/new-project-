@@ -87,7 +87,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
 };
 
-// Property Types
+// Property Types (Space Types)
 export type PropertyType =
   | 'apartment'
   | 'villa'
@@ -96,7 +96,12 @@ export type PropertyType =
   | 'building'
   | 'warehouse'
   | 'factory'
-  | 'industrial_land';
+  | 'industrial_land'
+  | 'storage'
+  | 'shipping_container'
+  | 'aviation_hangar'
+  | 'train_cargo'
+  | 'retail';
 
 export type PropertyStatus =
   | 'for_sale'
