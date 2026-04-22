@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "fullName": "Full Name",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUp": "Sign Up",
+    "signIn": "Sign In"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "greeting": "Hello",
+    "findSpace": "Find your perfect space",
+    "anySpace": "Any Space. Anywhere.",
+    "browseByType": "Browse by Type",
+    "featuredSpaces": "Featured Spaces",
+    "seeAll": "See All"
+  },
+  "spaces": {
+    "land": "Land",
+    "warehouse": "Warehouse",
+    "storage": "Storage",
+    "shippingContainer": "Shipping Container",
+    "aviationHangar": "Aviation Hangar",
+    "trainCargo": "Train Cargo",
+    "office": "Office",
+    "retail": "Retail"
+  },
+  "addSpace": {
+    "title": "Add New Space",
+    "selectType": "Select Space Type",
+    "basicInfo": "Basic Information",
+    "dimensions": "Dimensions",
+    "location": "Location",
+    "images": "Images",
+    "price": "Price",
+    "description": "Description"
+  },
+  "profile": {
+    "mySpaces": "My Spaces",
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "help": "Help & Support",
+    "terms": "Terms & Privacy"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "manageUsers": "Manage Users",
+    "allSpaces": "All Spaces",
+    "analytics": "Analytics",
+    "pendingApprovals": "Pending Approvals",
+    "approve": "Approve",
+    "reject": "Reject"
+  }
+}
