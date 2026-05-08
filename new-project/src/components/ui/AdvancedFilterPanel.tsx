@@ -49,11 +49,6 @@ function AdvancedFilterPanel({
     { value: 'train_cargo', label: t('property.trainCargo', 'Train Cargo') },
     { value: 'office', label: t('property.office', 'Office') },
     { value: 'retail', label: t('property.retail', 'Retail Store') },
-    { value: 'apartment', label: t('property.apartment', 'Apartment') },
-    { value: 'villa', label: t('property.villa', 'Villa') },
-    { value: 'building', label: t('property.building', 'Building') },
-    { value: 'factory', label: t('property.factory', 'Factory') },
-    { value: 'industrial_land', label: t('property.industrialLand', 'Industrial Land') },
   ];
 
   const propertyStatuses: SelectOption[] = [
@@ -63,13 +58,6 @@ function AdvancedFilterPanel({
     { value: 'investment', label: t('property.investment', 'Investment') },
   ];
 
-  const bedroomOptions: SelectOption[] = [
-    { value: '1', label: '1+' },
-    { value: '2', label: '2+' },
-    { value: '3', label: '3+' },
-    { value: '4', label: '4+' },
-    { value: '5', label: '5+' },
-  ];
 
   const updateFilter = <K extends keyof PropertyFilters>(
     key: K,
@@ -205,33 +193,6 @@ function AdvancedFilterPanel({
             />
           </div>
 
-          {/* Bedrooms & Bathrooms */}
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label={t('property.bedrooms')}
-              options={bedroomOptions}
-              placeholder={isArabic ? 'الكل' : 'Any'}
-              value={filters.bedrooms?.toString() || ''}
-              onChange={(e) =>
-                updateFilter(
-                  'bedrooms',
-                  e.target.value ? Number(e.target.value) : undefined
-                )
-              }
-            />
-            <Select
-              label={t('property.bathrooms')}
-              options={bedroomOptions}
-              placeholder={isArabic ? 'الكل' : 'Any'}
-              value={filters.bathrooms?.toString() || ''}
-              onChange={(e) =>
-                updateFilter(
-                  'bathrooms',
-                  e.target.value ? Number(e.target.value) : undefined
-                )
-              }
-            />
-          </div>
 
           {/* Advanced Filters Toggle */}
           <button
